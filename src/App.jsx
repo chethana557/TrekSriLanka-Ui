@@ -1,9 +1,12 @@
-import LandingPage from "./pages/LandingPage";
+import AppRoutes from "./Route";
+import BookingForm from './components/BookingForm.jsx';
 
 function App() {
   return (
     <>
-      <LandingPage />
+
+      <AppRoutes />
+      <BookingForm />
     </>
   );
 }

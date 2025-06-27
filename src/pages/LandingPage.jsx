@@ -1,14 +1,13 @@
 import React, { useRef } from 'react';
-import MainSection from '../components/MainSection';
-import WelcomeSection from '../components/WelcomeSection';
-import DestinationSection from '../components/DestinationsSection';
-import Navbar from '../components/Navbar';
-import Footer_Combination from '../components/Footer_Combination';
-import MoreDestinationsSection from '../components/MoreDestinationsSection';
-import SriLankaExplorer from '../components/SriLankaExplorer';
-import AccommodationOptions from '../components/AccommodationCarousel';
-import HowItWorks from '../components/HowItWorks';
-
+import MainSection from '../components/landing/MainSection.jsx';
+import WelcomeSection from '../components/landing/WelcomeSection.jsx';
+import DestinationsSection from '../components/landing/DestinationsSection.jsx';
+import Navbar from '../components/common/Navbar.jsx';
+import MoreDestinationsSection from '../components/landing/MoreDestinationsSection.jsx';
+import SriLankaExplorer from '../components/landing/SriLankaExplorer.jsx';
+import AccommodationCarousel from '../components/landing/AccommodationCarousel.jsx';
+import HowItWorks from '../components/landing/HowItWorks.jsx';
+import Footer_Combination from '../components/common/Footer_Combination.jsx';
 
 function LandingPage() {
   const welcomeSectionRef = useRef(null);
@@ -22,15 +21,14 @@ function LandingPage() {
       <MainSection onLetGoClick={handleScrollToWelcome} />
       <div ref={welcomeSectionRef}>
         <WelcomeSection />
-        <DestinationSection />
-        <MoreDestinationsSection/>
-        <div style={{ marginBottom: '90px' }} />
-        <SriLankaExplorer/>
-        <AccommodationOptions/>
-        <HowItWorks/>
-        <Footer_Combination/>
-        
       </div>
+      <DestinationsSection />
+      <MoreDestinationsSection />
+      <div style={{ marginBottom: '90px' }} />
+      <SriLankaExplorer />
+      <AccommodationCarousel />
+      <HowItWorks />
+      <Footer_Combination />
     </div>
   );
 }
