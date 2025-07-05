@@ -8,6 +8,7 @@ import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import PhoneIcon from '@mui/icons-material/Phone';
 import EmailIcon from '@mui/icons-material/Email';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import logoImage from '../../assets/logo_new.png'; 
 
 const Footer = () => {
   const theme = useTheme();
@@ -23,7 +24,6 @@ const Footer = () => {
               fontSize: '18px', 
               fontWeight: 600, 
               mb: 2,
-              fontFamily: 'Anek Latin, sans-serif',
               position: 'relative',
               '&:after': {
                 content: '""',
@@ -42,15 +42,15 @@ const Footer = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Box
                   component="img"
-                  src="src/assets/logo_new.png"
+                  src={logoImage}
                   sx={{ width: 80, height: 80 }}
                 />
-                <Typography variant="caption" sx={{ fontSize: '12px', fontStyle: 'italic', fontFamily: 'Anek Latin, sans-serif' }}>
+                <Typography variant="caption" sx={{ fontSize: '12px', fontStyle: 'italic' }}>
                   Your Ultimate Travel Companion!
                 </Typography>
               </Box>
               
-              <Typography variant="body2" sx={{ mt: 1, fontFamily: 'Anek Latin, sans-serif' }}>
+              <Typography variant="body2" sx={{ mt: 1 }}>
                 Your Ultimate Travel Companion for exploring the beauty <br />
                 and culture of Sri Lanka since 2025.
               </Typography>
@@ -64,7 +64,6 @@ const Footer = () => {
               fontSize: '18px', 
               fontWeight: 600, 
               mb: 2,
-              fontFamily: 'Anek Latin, sans-serif',
               position: 'relative',
               '&:after': {
                 content: '""',
@@ -82,21 +81,21 @@ const Footer = () => {
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <LocationOnIcon fontSize="small" />
-                <Typography variant="body2" sx={{ fontFamily: 'Anek Latin, sans-serif' }}>
+                <Typography variant="body2">
                   123 Travel Street, Colombo, Sri Lanka
                 </Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PhoneIcon fontSize="small" />
-                <Typography variant="body2" sx={{ fontFamily: 'Anek Latin, sans-serif' }}>
+                <Typography variant="body2">
                   +94 123 456 789
                 </Typography>
               </Box>
               
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <EmailIcon fontSize="small" />
-                <Typography variant="body2" sx={{ fontFamily: 'Anek Latin, sans-serif' }}>
+                <Typography variant="body2">
                   info@treksrilanka.com
                 </Typography>
               </Box>
@@ -109,7 +108,6 @@ const Footer = () => {
               fontSize: '18px', 
               fontWeight: 600, 
               mb: 2,
-              fontFamily: 'Anek Latin, sans-serif',
               position: 'relative',
               '&:after': {
                 content: '""',
@@ -132,7 +130,6 @@ const Footer = () => {
                   sx={{ 
                     color: 'white', 
                     textDecoration: 'none',
-                    fontFamily: 'Anek Latin, sans-serif',
                     '&:hover': {
                       textDecoration: 'underline',
                     }
@@ -150,7 +147,6 @@ const Footer = () => {
               fontSize: '18px', 
               fontWeight: 600, 
               mb: 2,
-              fontFamily: 'Anek Latin, sans-serif',
               position: 'relative',
               '&:after': {
                 content: '""',
@@ -173,7 +169,6 @@ const Footer = () => {
                   sx={{ 
                     color: 'white', 
                     textDecoration: 'none',
-                    fontFamily: 'Anek Latin, sans-serif',
                     '&:hover': {
                       textDecoration: 'underline',
                     }
@@ -188,7 +183,7 @@ const Footer = () => {
         
         {/* Social Media and Copyright */}
         <Box sx={{ mt: 4, textAlign: 'center', borderTop: '1px solid rgba(255, 255, 255, 0.2)', pt: 2 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1, fontFamily: 'Anek Latin, sans-serif' }}>
+          <Typography variant="subtitle1" sx={{ mb: 1 }}>
             Follow Us
           </Typography>
           
@@ -199,7 +194,7 @@ const Footer = () => {
             <LinkedInIcon sx={{ cursor: 'pointer' }} />
           </Box>
           
-          <Typography variant="body2" sx={{ fontFamily: 'Anek Latin, sans-serif' }}>
+          <Typography variant="body2">
             © 2025 TrekSriLanka. All Rights Reserved.
           </Typography>
         </Box>

@@ -1,11 +1,12 @@
 import React from 'react';
-import Footer from './Footer';
+import Footer from './Footer.jsx';
+import footerImage from '../../assets/footer_img.png';
 
 const Footer_Combination = () => {
   return (
     <div style={{ position: 'relative' }}>
       <img 
-        src="src/assets/footer_img.png" 
+        src={footerImage} 
         alt="Wave Overlap" 
         style={{
           position: 'absolute',
