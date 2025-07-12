@@ -1,12 +1,16 @@
 import React from 'react';
 import { Box, CssBaseline } from '@mui/material';
-import BookingsManagement from '../../../components/admin/BookingsManagement.jsx';
+import AdminNavBar from '../../../components/adminPages/AdminNavBar.jsx'
+import BookingsManagement from '../../../components/adminPages/BookingsManagement.jsx';
+import Footer_Combination from '../../../components/footerCombination/Footer_Combination.jsx'
 
 function BookingsPage() {
   return (
     <Box>
-        <CssBaseline />      
+        <CssBaseline />   
+        <AdminNavBar />   
         <BookingsManagement />
+        <Footer_Combination />
     </Box>
   );
 }

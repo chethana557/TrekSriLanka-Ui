@@ -1,13 +1,16 @@
 import React from 'react';
 import { Box, CssBaseline } from '@mui/material';
-import TourPackagesManagement from '../../../components/admin/TourPackagesManagement.jsx';
-import Footer_Combination from '../../../components/common/Footer_Combination.jsx'
+import TourPackagesManagement from '../../../components/adminPages/TourPackagesManagement.jsx';
+import AdminNavBar from '../../../components/adminPages/AdminNavBar.jsx';
+import Footer_Combination from '../../../components/footerCombination/Footer_Combination.jsx';
 
 function TourPackagesPage() {
   return (
     <Box>
-        <CssBaseline />      
+        <CssBaseline />   
+        <AdminNavBar />   
         <TourPackagesManagement />
+        <Footer_Combination />
       </Box>
   );
 }

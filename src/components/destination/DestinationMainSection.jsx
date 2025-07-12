@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Box, Typography, InputBase, Paper } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import AccommodationBackground from '../../assets/accommodation/background_2.png'; 
+import AccommodationBackground from '../../assets/tourPackages/background_2.png'; 
 
 function DestinationMainSection() {
   return (
