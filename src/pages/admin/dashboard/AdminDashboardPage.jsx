@@ -4,7 +4,8 @@ import DashboardStatsSection from '../../../components/adminPages/DashboardStats
 import QuickActionsSection from '../../../components/adminPages/QuickActionsSection.jsx';
 import RecentBookingsSection from '../../../components/adminPages/RecentBookingsSection.jsx';
 import AdminNavBar from '../../../components/adminPages/AdminNavBar.jsx'
-import Footer_Combination from '../../../components/footerCombination/Footer_Combination.jsx'
+import Footer_Combination from '../../../components/footerCombination/Footer_Combination.jsx';
+import ChatbotWidget from '../../../components/chatBot/ChatbotWidget.jsx';
 
 function AdminDashboardPage() {
   return (
@@ -14,6 +15,7 @@ function AdminDashboardPage() {
         <DashboardStatsSection />
         <QuickActionsSection />
         <RecentBookingsSection />
+        <ChatbotWidget />
         <Footer_Combination /> 
       </Box>
   );

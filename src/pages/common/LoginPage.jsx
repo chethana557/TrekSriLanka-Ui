@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Logo from '../../assets/common/logo_new.png';
+import { BASE_URL } from '../../api';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -20,10 +21,54 @@ function LoginPage() {
     });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log('Login submitted:', formData);
-    alert('Login submitted! Check console for details.');
+    try {
+      const response = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        alert(errorData.detail || 'Login failed.');
+        return;
+      }
+
+      const data = await response.json();
+      // Store token in localStorage
+      localStorage.setItem('access_token', data.access_token);
+      localStorage.setItem('token_type', data.token_type);
+      // Fetch user info
+      const userResponse = await fetch(`${BASE_URL}/auth/me`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${data.access_token}`,
+        },
+      });
+      if (!userResponse.ok) {
+        alert('Failed to fetch user info.');
+        return;
+      }
+      const user = await userResponse.json();
+      // Store username and user type in localStorage
+      localStorage.setItem('username', user.username);
+      localStorage.setItem('user_type', user.is_verified ? 'admin' : 'user');
+      if (user.is_verified) {
+        navigate('/admin/dashboard');
+      } else {
+        navigate('/destination');
+      }
+    } catch (error) {
+      alert('An error occurred during login.');
+      console.error('Login error:', error);
+    }
   };
 
   const handleGoogleSignIn = () => {

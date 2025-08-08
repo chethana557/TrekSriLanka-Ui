@@ -8,6 +8,7 @@ import SriLankaExplorer from '../../components/landingPage/SriLankaExplorer.jsx'
 import AccommodationCarousel from '../../components/landingPage/AccommodationCarousel.jsx';
 import HowItWorks from '../../components/landingPage/HowItWorks.jsx';
 import Footer_Combination from '../../components/footerCombination/Footer_Combination.jsx';
+import ChatbotWidget from '../../components/chatBot/ChatbotWidget.jsx';
 
 function LandingPage() {
   const welcomeSectionRef = useRef(null);
@@ -29,6 +30,7 @@ function LandingPage() {
       <AccommodationCarousel />
       <HowItWorks />
       <Footer_Combination />
+      <ChatbotWidget />
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import Logo from '../../assets/common/logo_new.png';
 import GoogleLogo from '../../assets/common/google_logo.png';
+import { BASE_URL } from '../../api';
 
 const countries = [
   'Afghanistan', 'Albania', 'Algeria', 'Argentina', 'Australia', 'Austria',
@@ -236,6 +237,14 @@ const SelectInput = ({ label, value, onChange, options, placeholder, icon: Icon 
 // Personal Information Section
 const PersonalInfoSection = ({ formData, handleInputChange, showPassword, setShowPassword, showConfirmPassword, setShowConfirmPassword }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+    <TextInput
+      label="Username"
+      placeholder="Choose a username"
+      value={formData.username}
+      onChange={handleInputChange('username')}
+      icon={User}
+    />
+
     <TextInput
       label="Full Name"
       placeholder="Enter your name"
@@ -522,6 +531,7 @@ function SignUpPage() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
+    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -543,10 +553,53 @@ function SignUpPage() {
     });
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log('Sign up submitted:', formData);
-    alert('Account created successfully! Check console for details.');
+    // Basic validation
+    if (!formData.username) {
+      alert('Username is required.');
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      alert('Passwords do not match.');
+      return;
+    }
+    if (!formData.agreeToTerms) {
+      alert('You must agree to the terms and conditions.');
+      return;
+    }
+    try {
+      const response = await fetch(`${BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          username: formData.username,
+          password: formData.password,
+          full_name: formData.fullName,
+          phone_number: formData.phoneNumber,
+          country: formData.country,
+          travel_style: formData.travelStyle,
+          travel_group: formData.travelGroup
+        }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        if (errorData.detail === 'Username already taken') {
+          alert('This username is already taken. Please choose another one.');
+        } else {
+          alert(errorData.detail || 'Registration failed.');
+        }
+        return;
+      }
+      alert('Account created successfully!');
+      navigate('/login');
+    } catch (error) {
+      alert('An error occurred during registration.');
+      console.error('Registration error:', error);
+    }
   };
 
   const handleGoogleSignUp = () => {
