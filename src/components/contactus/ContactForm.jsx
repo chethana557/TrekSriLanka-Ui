@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 function ContactForm() {
   const [formData, setFormData] = useState({
@@ -23,14 +23,51 @@ function ContactForm() {
     });
   };
 
-  const handleSubmit = (event) => {
+  const [submitting, setSubmitting] = useState(false);
+  const [notice, setNotice] = useState({ type: '', message: '' });
+  const API_BASE_URL = 'http://localhost:8000/api/v1';
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
-    console.log('Form submitted:', formData);
-    alert('Message sent! We will get back to you soon.');
+    if (!formData.fullName || !formData.email || !formData.inquiryType || !formData.message) {
+      setNotice({ type: 'error', message: 'Please fill in all fields.' });
+      return;
+    }
+    try {
+      setSubmitting(true);
+      const res = await fetch(`${API_BASE_URL}/contact/messages`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: formData.fullName,
+          email: formData.email,
+          inquiry_type: formData.inquiryType,
+          message: formData.message
+        })
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || 'Failed to send message');
+      }
+      // Success
+      setFormData({ fullName: '', email: '', inquiryType: '', message: '' });
+      setNotice({ type: 'success', message: 'Message sent! We will get back to you soon.' });
+    } catch (e) {
+      setNotice({ type: 'error', message: `Could not send message: ${e.message}` });
+    } finally {
+      setSubmitting(false);
+    }
   };
 
+  // Auto-hide notification after 4 seconds
+  useEffect(() => {
+    if (!notice.message) return;
+    const t = setTimeout(() => setNotice({ type: '', message: '' }), 4000);
+    return () => clearTimeout(t);
+  }, [notice.message]);
+
   return (
-    <div style={{
+    <div id="contact-form" style={{
       
       padding: '2rem 1rem',
       display: 'flex',
@@ -47,7 +84,7 @@ function ContactForm() {
       }}>
         <h2 style={{
           fontSize: '1.5rem',
-          fontWeight: '600',
+          fontWeight: 'bold',
           color: '#00A79D',
           textAlign: 'left',
           marginBottom: '1.5rem',
@@ -231,7 +268,7 @@ function ContactForm() {
           <div style={{ marginTop: '1rem' }}>
             <button
               type="button"
-              onClick={handleSubmit}
+              onClick={submitting ? undefined : handleSubmit}
               style={{
                 backgroundColor: '#00A79D',
                 color: 'white',
@@ -241,11 +278,13 @@ function ContactForm() {
                 fontSize: '14px',
                 fontWeight: '600',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
-                cursor: 'pointer',
+                cursor: submitting ? 'not-allowed' : 'pointer',
                 transition: 'all 0.2s ease',
-                boxShadow: '0 2px 8px rgba(0, 167, 157, 0.3)'
+                boxShadow: '0 2px 8px rgba(0, 167, 157, 0.3)',
+                opacity: submitting ? 0.85 : 1
               }}
               onMouseEnter={(e) => {
+                if (submitting) return;
                 e.target.style.backgroundColor = '#008A80';
                 e.target.style.boxShadow = '0 4px 12px rgba(0, 167, 157, 0.4)';
                 e.target.style.transform = 'translateY(-1px)';
@@ -255,10 +294,48 @@ function ContactForm() {
                 e.target.style.boxShadow = '0 2px 8px rgba(0, 167, 157, 0.3)';
                 e.target.style.transform = 'translateY(0)';
               }}
+              disabled={submitting}
             >
-              Send
+              {submitting ? 'Sending…' : 'Send'}
             </button>
           </div>
+
+          {/* Inline Alert under the Send button */}
+          {notice.message && (
+            <div
+              role="alert"
+              aria-live="polite"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '12px',
+                padding: '12px 14px',
+                borderRadius: 10,
+                border: `1px solid ${notice.type === 'success' ? '#C6F6D5' : '#FED7D7'}`,
+                background: notice.type === 'success' ? 'linear-gradient(180deg, #F0FFF4, #F6FFFA)' : 'linear-gradient(180deg, #FFF5F5, #FFF8F8)',
+                color: notice.type === 'success' ? '#22543D' : '#742A2A',
+                boxShadow: '0 2px 10px rgba(0,0,0,0.04)'
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{notice.message}</span>
+              <button
+                type="button"
+                onClick={() => setNotice({ type: '', message: '' })}
+                aria-label="Dismiss notification"
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'inherit',
+                  cursor: 'pointer',
+                  fontSize: 16,
+                  fontWeight: 700
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

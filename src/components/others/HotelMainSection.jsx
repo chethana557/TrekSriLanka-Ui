@@ -1,16 +1,16 @@
 import * as React from 'react';
 import { Box, Typography, InputBase, Paper } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import AccommodationBackground from '../../assets/hotel/galleface/galle_face_1.png'; 
+import AccommodationBackground from '../../assets/accommodations/background_2.png'; 
 
-function HotelMainSection() {
+function HotelMainSection({ image }) {
   return (
     <Box
       sx={{
         position: 'relative',
         height: '40vh',
         width: '100%',
-        backgroundImage: `url(${AccommodationBackground})`,
+        backgroundImage: `url(${image || AccommodationBackground})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         display: 'flex',
@@ -30,6 +30,7 @@ function HotelMainSection() {
           mt: 6,
         }}
       >
+  {/* Hotel name overlay removed as requested */}
       </Box>
     </Box>
   );

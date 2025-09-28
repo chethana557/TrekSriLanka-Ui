@@ -3,6 +3,7 @@ import ContactUsMainSection from '../../components/contactus/ContactUsMainSectio
 import Navbar from '../../components/navbars/Navbar.jsx';
 import ContactForm from '../../components/contactus/ContactForm.jsx'
 import ContactUsWelcomeSection from '../../components/contactus/ContactUsWelcomeSection.jsx'
+import ContactUsWelcomeSection2 from '../../components/contactus/ContactUsWelcomeSection2.jsx'
 import ContactDetails from '../../components/contactus/ContactDetails.jsx'
 import Footer_Combination from '../../components/footerCombination/Footer_Combination.jsx';
 
@@ -14,7 +15,7 @@ function ContactUsPage() {
         <ContactUsMainSection />
         <ContactUsWelcomeSection />
         <ContactForm />
-        <ContactUsWelcomeSection />
+        <ContactUsWelcomeSection2 />
         <ContactDetails />
         <Footer_Combination />
     </div>

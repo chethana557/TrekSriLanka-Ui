@@ -13,7 +13,7 @@ function ContactUsWelcomeSection() {
       
         }}
       >
-      <span style={{ fontSize: '1.5em' }}>Your Trusted Guide to Exploring Sri Lanka!</span>
+      <span style={{ fontSize: '1.5em' }}>Let's Craft Your Itinerary</span>
       </Typography>
             
       <Box sx={{ maxWidth: '900px', mx: 'auto', px: 2 }}>
@@ -26,11 +26,12 @@ function ContactUsWelcomeSection() {
             color: '#333'
           }}
         >
-          At TrekSriLanka, we believe that every journey should be an unforgettable experience.
+          Ready to explore Sri Lanka? 
           <br />
-          With a passion for travel and a deep love for Sri Lanka, we curate personalized itineraries that 
+          Use this form to send us your travel ideas, questions, or specific requests. 
           <br />
-          showcase the country’s breathtaking landscapes, rich culture, and hidden gems. Whether you’re looking for luxurious beachfront stays, scenic mountain getaways, or cultural explorations, we’ve got you covered.
+          We'll help you build a personalized journey from the ground up.
+          <br />
         </Typography>
       </Box>
     </Box>

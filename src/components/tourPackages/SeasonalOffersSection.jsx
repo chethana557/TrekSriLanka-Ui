@@ -1,33 +1,96 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { 
   Box, 
   Typography, 
   Card, 
   CardMedia, 
   Button, 
-  Container
+  Container,
+  IconButton
 } from '@mui/material';
-
-const destinations = [
-  {
-    name: 'Sigiriya Rock',
-    image: 'https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=400'
-  },
-  {
-    name: 'Temple of Tooth',
-    image: 'https://images.pexels.com/photos/7579831/pexels-photo-7579831.jpeg?auto=compress&cs=tinysrgb&w=400'
-  },
-  {
-    name: 'Nine Arch Bridge',
-    image: 'https://images.pexels.com/photos/14580513/pexels-photo-14580513.jpeg?auto=compress&cs=tinysrgb&w=400'
-  },
-  {
-    name: 'Unawatuna Beach',
-    image: 'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg?auto=compress&cs=tinysrgb&w=400'
-  }
-];
-
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import { BASE_URL } from '../../api';
 function SeasonalOffersSection() {
+  const [offers, setOffers] = useState([]);
+  const [index, setIndex] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const res = await fetch(`${BASE_URL}/seasonal-offers/`);
+        if (!res.ok) throw new Error('Failed to load seasonal offers');
+        const list = await res.json();
+        const active = Array.isArray(list) ? list.filter(o => (o.status || '').toLowerCase() === 'active') : [];
+        const sorted = active.length ? active : (Array.isArray(list) ? list : []);
+        setOffers(sorted);
+        setIndex(0);
+      } catch (e) {
+        setError(e.message || 'Failed to load seasonal offers');
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  const destinations = useMemo(() => {
+    const offer = offers[index];
+    if (!offer || !Array.isArray(offer.photos) || offer.photos.length === 0) return [];
+    // Build up to 4 images from offer photos
+    return offer.photos.slice(0, 4).map((img, idx) => ({ name: `${offer.title || 'Offer'} ${idx + 1}`, image: img }));
+  }, [offers, index]);
+
+  const stats = useMemo(() => {
+    const offer = offers[index];
+    if (!offer) return null;
+    const dayCount = Number(offer.day_count) || 0;
+    const locCount = Array.isArray(offer.locations) ? offer.locations.length : 0;
+    const oldPerPerson = Number(offer.package_price) || 0;
+    const discount = Number(offer.off_percentage) || 0;
+    const newPerPerson = Math.max(0, oldPerPerson * (1 - discount / 100));
+    const fmt = (n) => `$${n.toFixed(2)}`;
+    const rawDate = offer.valid_date;
+    // Keep original YYYY-MM-DD when provided; fallback to locale date
+    let validUntil = '';
+    if (typeof rawDate === 'string') {
+      validUntil = rawDate.slice(0, 10);
+    } else if (rawDate) {
+      try {
+        const d = new Date(rawDate);
+        validUntil = isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+      } catch {
+        validUntil = '';
+      }
+    }
+    return {
+      title: offer.title || 'Seasonal Offer',
+      dayCount,
+      locCount,
+      oldPerPersonLabel: fmt(oldPerPerson) + ' per person',
+      newPerPersonLabel: fmt(newPerPerson) + ' ',
+      validUntil,
+    };
+  }, [offers, index]);
+
+  const hasMultiple = offers.length > 1;
+  const currentOffer = offers[index] || null;
+  const prev = () => setIndex((i) => (i - 1 + offers.length) % offers.length);
+  const next = () => setIndex((i) => (i + 1) % offers.length);
+
+  // Auto-slide when there are multiple offers
+  useEffect(() => {
+    if (!hasMultiple) return;
+    const id = setInterval(() => {
+      setIndex((i) => (i + 1) % offers.length);
+    }, 5000); // 5s
+    return () => clearInterval(id);
+  }, [hasMultiple, offers.length]);
+
   return (
     <Box
       sx={{
@@ -60,7 +123,46 @@ function SeasonalOffersSection() {
           </Typography>
         </Box>
 
-        {/* Main Content Card */}
+        {/* Main Content Card (slider) */}
+        <Box sx={{ position: 'relative' }}>
+    {hasMultiple && (
+            <>
+              <IconButton
+                aria-label="Previous offer"
+                onClick={prev}
+                sx={{
+                  position: 'absolute',
+      left: { xs: 8, sm: 12 },
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  bgcolor: 'white',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+      p: 1,
+                  zIndex: 2,
+                  '&:hover': { bgcolor: 'white' }
+                }}
+              >
+                <ChevronLeftIcon />
+              </IconButton>
+              <IconButton
+                aria-label="Next offer"
+                onClick={next}
+                sx={{
+                  position: 'absolute',
+      right: { xs: 8, sm: 12 },
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  bgcolor: 'white',
+      boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+      p: 1,
+                  zIndex: 2,
+                  '&:hover': { bgcolor: 'white' }
+                }}
+              >
+                <ChevronRightIcon />
+              </IconButton>
+            </>
+          )}
         <Card
           sx={{
             borderRadius: '10px',
@@ -76,7 +178,12 @@ function SeasonalOffersSection() {
               height: { xs: '180px', sm: '220px', md: '260px' }
             }}
           >
-            {destinations.map((destination, index) => (
+            {(destinations.length ? destinations : [
+              { name: 'Sigiriya Rock', image: 'https://images.pexels.com/photos/3408744/pexels-photo-3408744.jpeg?auto=compress&cs=tinysrgb&w=400' },
+              { name: 'Temple of Tooth', image: 'https://images.pexels.com/photos/7579831/pexels-photo-7579831.jpeg?auto=compress&cs=tinysrgb&w=400' },
+              { name: 'Nine Arch Bridge', image: 'https://images.pexels.com/photos/14580513/pexels-photo-14580513.jpeg?auto=compress&cs=tinysrgb&w=400' },
+              { name: 'Unawatuna Beach', image: 'https://images.pexels.com/photos/1450353/pexels-photo-1450353.jpeg?auto=compress&cs=tinysrgb&w=400' }
+            ]).map((destination, index) => (
               <Box
                 key={destination.name}
                 sx={{
@@ -119,7 +226,7 @@ function SeasonalOffersSection() {
                 mb: 3
               }}
             >
-              Golden Isle Adventures
+              {stats?.title || 'Golden Isle Adventures'}
             </Typography>
 
             {/* Pricing Section */}
@@ -136,17 +243,6 @@ function SeasonalOffersSection() {
               {/* Original Package - Struck Through */}
               <Box sx={{ textAlign: 'center' }}>
                 <Typography
-                  variant="body1"
-                  sx={{
-                    textDecoration: 'line-through',
-                    color: '#999',
-                    fontSize: { xs: '0.9rem', sm: '1rem' },
-                    mb: 0.5
-                  }}
-                >
-                  10 Days | 20 Locations
-                </Typography>
-                <Typography
                   variant="h5"
                   sx={{
                     textDecoration: 'line-through',
@@ -155,7 +251,7 @@ function SeasonalOffersSection() {
                     fontSize: { xs: '1.3rem', sm: '1.5rem' }
                   }}
                 >
-                  $899 per person
+                  {stats ? stats.oldPerPersonLabel : '$899 per person'}
                 </Typography>
               </Box>
 
@@ -170,7 +266,7 @@ function SeasonalOffersSection() {
                     mb: 0.5
                   }}
                 >
-                  12 Days | 24 Locations
+                  {stats ? `${stats.dayCount} Days | ${stats.locCount} Locations` : '12 Days | 24 Locations'}
                 </Typography>
                 <Typography
                   variant="h3"
@@ -180,7 +276,7 @@ function SeasonalOffersSection() {
                     color: '#333'
                   }}
                 >
-                  $799{' '}
+                  {stats ? stats.newPerPersonLabel : '$799 '}
                   <Typography
                     component="span"
                     variant="h6"
@@ -193,6 +289,14 @@ function SeasonalOffersSection() {
                     per person
                   </Typography>
                 </Typography>
+                {stats?.validUntil && (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: '#999', mt: 0.5 }}
+                  >
+                    Valid until {stats.validUntil}
+                  </Typography>
+                )}
               </Box>
 
               {/* CTA Button */}
@@ -217,11 +321,31 @@ function SeasonalOffersSection() {
                   }
                 }}
               >
-                Get Offer
+                {loading ? 'Loading…' : (currentOffer ? 'Get Offer' : 'No Offers')}
               </Button>
             </Box>
           </Box>
         </Card>
+        {/* dots */}
+        {hasMultiple && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1, mt: 2 }}>
+            {offers.map((_, i) => (
+              <Box
+                key={i}
+                onClick={() => setIndex(i)}
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  bgcolor: i === index ? '#00A79D' : 'rgba(255,255,255,0.7)',
+                  border: '1px solid rgba(0,0,0,0.2)'
+                }}
+              />
+            ))}
+          </Box>
+        )}
+        </Box>
       </Container>
     </Box>
   );

@@ -22,7 +22,9 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import HelpIcon from '@mui/icons-material/Help';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import LogoutIcon from '@mui/icons-material/Logout';
+import BookingIcon from '@mui/icons-material/BookOnline';
 import userAvatar from '../../assets/admin/boy.png';
+import { isLoggedIn, clearUserCredentials, getCurrentUser } from '../../utils/authUtils';
 
 // Navigation items
 const navLinks = [
@@ -35,14 +37,29 @@ const navLinks = [
   { label: 'Contact', path: '/contactus' }
 ];
 
+// Configurable navbar appearance
+const NAVBAR_BG_OPACITY = 0.82; // increase for less transparency (range 0-1)
+const NAVBAR_BLUR_PX = 1; // backdrop blur radius
+const HOTEL_REQUEST_BUTTON_LABEL = 'List Your Hotel';
+
 function Navbar() {
   const [anchorElNav, setAnchorElNav] = React.useState(null);
   const location = useLocation();
   const navigate = useNavigate();
   const [anchorElProfile, setAnchorElProfile] = React.useState(null);
-  const [profile, setProfile] = React.useState({ username: localStorage.getItem('username') });
+  const [profile, setProfile] = React.useState({ username: '' });
 
-  const isLoggedIn = Boolean(localStorage.getItem('access_token')) && localStorage.getItem('user_type') === 'user';
+  // Use the new authentication utility
+  const loggedIn = isLoggedIn();
+
+  React.useEffect(() => {
+    if (loggedIn) {
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        setProfile({ username: currentUser.username });
+      }
+    }
+  }, [loggedIn]);
 
   const handleOpenNavMenu = (event) => {
     setAnchorElNav(event.currentTarget);
@@ -59,13 +76,23 @@ function Navbar() {
     setAnchorElProfile(null);
   };
   const handleLogout = () => {
-    localStorage.clear();
+    clearUserCredentials();
     handleCloseProfile();
     navigate('/');
   };
 
   return (
-    <AppBar position="static" color="transparent" elevation={1} sx={{ bgcolor: 'white' }}>
+    <AppBar 
+      position="sticky" 
+      color="transparent" 
+      elevation={2}
+      sx={{ 
+        bgcolor: `rgba(255,255,255,${NAVBAR_BG_OPACITY})`,
+        backdropFilter: `saturate(180%) blur(${NAVBAR_BLUR_PX}px)`,
+        WebkitBackdropFilter: `saturate(180%) blur(${NAVBAR_BLUR_PX}px)`,
+        transition: 'background-color 0.3s ease, backdrop-filter 0.3s ease'
+      }}
+    >
       <Container maxWidth="xl">
         <Toolbar disableGutters>
           {/* Logo for larger screens */}
@@ -141,6 +168,28 @@ function Navbar() {
               ))}
               <MenuItem onClick={handleCloseNavMenu}>
                 <Button
+                  variant="outlined"
+                  sx={{
+                    borderColor: '#4AB9B0',
+                    color: '#4AB9B0',
+                    '&:hover': { 
+                      bgcolor: '#4AB9B0',
+                      color: 'white',
+                      borderColor: '#4AB9B0'
+                    },
+                    borderRadius: '25px',
+                    textTransform: 'none',
+                    fontWeight: 'bold',
+                    px: 3,
+                    mb: 1
+                  }}
+                  onClick={() => navigate('/hotels')}
+                >
+                  {HOTEL_REQUEST_BUTTON_LABEL}
+                </Button>
+              </MenuItem>
+              <MenuItem onClick={handleCloseNavMenu}>
+                <Button
                   variant="contained"
                   sx={{
                     bgcolor: '#4AB9B0',
@@ -213,9 +262,30 @@ function Navbar() {
             ))}
           </Box>
 
-          {/* Login button or User Profile */}
-          <Box sx={{ flexGrow: 0, display: { xs: 'none', md: 'flex' } }}>
-            {isLoggedIn ? (
+          {/* Add Hotel and Login button or User Profile */}
+          <Box sx={{ flexGrow: 0, display: { xs: 'none', md: 'flex' }, gap: 2 }}>
+            {/* Add Hotel Button */}
+            <Button
+              variant="outlined"
+              onClick={() => navigate('/hotels')}
+              sx={{
+                borderColor: '#4AB9B0',
+                color: '#4AB9B0',
+                '&:hover': { 
+                  bgcolor: '#4AB9B0',
+                  color: 'white',
+                  borderColor: '#4AB9B0'
+                },
+                borderRadius: '25px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+                px: 3
+              }}
+            >
+              {HOTEL_REQUEST_BUTTON_LABEL}
+            </Button>
+            
+            {loggedIn ? (
               <>
                 <IconButton sx={{ p: 0 }} onClick={handleProfileClick}>
                   <Avatar alt="User Profile" src={userAvatar} sx={{ width: 40, height: 40, border: '2px solid #4AB9B0' }} />
@@ -247,7 +317,11 @@ function Navbar() {
                     </Box>
                     <Divider sx={{ mb: 1 }} />
                     <List disablePadding>
-                      <ListItem button sx={{ px: 3, py: 1.2, '&:hover': { bgcolor: '#f5f7fa' } }}>
+                      <ListItem button onClick={() => { navigate('/my-bookings'); handleCloseProfile(); }} sx={{ px: 3, py: 1.2, '&:hover': { bgcolor: '#f5f7fa' } }}>
+                        <ListItemIcon sx={{ minWidth: 36, color: '#4AB9B0' }}><BookingIcon /></ListItemIcon>
+                        <ListItemText primary={<span style={{ fontWeight: 500 }}>My Bookings</span>} />
+                      </ListItem>
+                      <ListItem button onClick={() => { navigate('/edit-profile'); handleCloseProfile(); }} sx={{ px: 3, py: 1.2, '&:hover': { bgcolor: '#f5f7fa' } }}>
                         <ListItemIcon sx={{ minWidth: 36, color: '#4AB9B0' }}><PersonIcon /></ListItemIcon>
                         <ListItemText primary={<span style={{ fontWeight: 500 }}>Edit Profile</span>} />
                       </ListItem>

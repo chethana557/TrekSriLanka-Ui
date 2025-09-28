@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import Navbar from '../../components/navbars/Navbar.jsx';
+import Footer_Combination from '../../components/footerCombination/Footer_Combination.jsx';
 import { 
   CreditCard,
   Calendar,
@@ -9,8 +12,12 @@ import {
 } from 'lucide-react';
 
 function PaymentInformation() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const packageId = location.state?.packageId || (()=>{ try { return (JSON.parse(sessionStorage.getItem('bookingFormData')||'{}')).packageId || null; } catch { return null; } })();
+  const bookingData = location.state?.bookingData || (()=>{ try { return JSON.parse(sessionStorage.getItem('bookingFormData')||'{}'); } catch { return {}; } })();
   const [formData, setFormData] = useState({
-    cardholderName: '',
+  cardholderName: '',
     cardNumber: '',
     expiryDate: '',
     cvc: '',
@@ -19,19 +26,185 @@ function PaymentInformation() {
     postalCode: '',
     agreeToTerms: false
   });
+  const [touched, setTouched] = useState({});
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+  // Timer state for 5-minute window
+  const [timeLeft, setTimeLeft] = useState(300);
+  const [expired, setExpired] = useState(false);
+  // Shared with BookingFormPage so user has a single 5-minute window for the whole booking flow
+  const expiryKey = 'bookingFlowExpiry';
+
+  const resetPaymentForm = useCallback(()=>{
+    setFormData({
+      cardholderName: '',
+      cardNumber: '',
+      expiryDate: '',
+      cvc: '',
+      billingAddress: '',
+      city: '',
+      postalCode: '',
+      agreeToTerms: false
+    });
+    setTouched({});
+    setAttemptedSubmit(false);
+  }, []);
+
+  // Initialize / manage countdown (independent from booking page)
+  useEffect(()=>{
+    let expiry = NaN;
+    try { expiry = Number(sessionStorage.getItem(expiryKey)); } catch {}
+    const now = Date.now();
+    if(!expiry || isNaN(expiry) || expiry <= now){
+      expiry = now + 5*60*1000;
+      try { sessionStorage.setItem(expiryKey, String(expiry)); } catch {}
+    }
+  const tick = ()=>{
+      const remainingMs = expiry - Date.now();
+      if(remainingMs <= 0){
+        setTimeLeft(0);
+        setExpired(true);
+    resetPaymentForm();
+    try { sessionStorage.removeItem(expiryKey); } catch {}
+    try { sessionStorage.removeItem('bookingFormData'); } catch {}
+        return;
+      }
+      setTimeLeft(Math.floor(remainingMs/1000));
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return ()=> clearInterval(id);
+  }, [resetPaymentForm]);
+
+  // Detect logout (token removal) and clear payment form
+  const prevTokenRef = useRef(localStorage.getItem('access_token'));
+  useEffect(()=>{
+    const poll = setInterval(()=>{
+      const current = localStorage.getItem('access_token');
+      if(prevTokenRef.current && !current){
+        resetPaymentForm();
+        try { sessionStorage.removeItem(expiryKey); } catch {}
+        try { sessionStorage.removeItem('bookingFormData'); } catch {}
+        setExpired(false);
+        setTimeLeft(300);
+      }
+      prevTokenRef.current = current;
+    }, 1500);
+    return ()=> clearInterval(poll);
+  }, [resetPaymentForm]);
+
+  const formatTime = (secs)=>{
+    const m = Math.floor(secs/60).toString().padStart(2,'0');
+    const s = (secs%60).toString().padStart(2,'0');
+    return `${m}:${s}`;
+  };
+
+  // --- Validation Helpers ---
+  const normalizeCard = (v) => v.replace(/[^0-9]/g, '');
+  const luhnValid = (num) => {
+    if(num.length < 12) return false;
+    let sum = 0, alt = false;
+    for (let i = num.length - 1; i >= 0; i--) {
+      let n = parseInt(num[i],10);
+      if (alt) { n *= 2; if (n > 9) n -= 9; }
+      sum += n; alt = !alt;
+    }
+    return sum % 10 === 0;
+  };
+  const expiryValid = (mmYY) => {
+    if(!/^(0[1-9]|1[0-2])\/\d{2}$/.test(mmYY)) return false;
+    const [mm, yy] = mmYY.split('/');
+    const month = parseInt(mm,10);
+    const year = 2000 + parseInt(yy,10);
+    const now = new Date();
+    // Last day of expiry month
+    const exp = new Date(year, month, 0, 23, 59, 59);
+    return exp >= new Date(now.getFullYear(), now.getMonth(), 1);
+  };
+  const cvcValid = (cvc) => /^[0-9]{3,4}$/.test(cvc);
+  const looksFake = (num) => /^([0-9])\1+$/.test(num);
+
+  // --- Field specific derived / formatting handlers ---
+  const formatCardNumber = (raw) => normalizeCard(raw).replace(/(.{4})/g, '$1 ').trim();
+  const formatExpiry = (raw) => {
+    const digits = raw.replace(/[^0-9]/g,'').slice(0,4);
+    if(digits.length <= 2) return digits;
+    return digits.slice(0,2) + '/' + digits.slice(2);
+  };
 
   const handleInputChange = (field) => (event) => {
-    const value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
-    setFormData({
-      ...formData,
-      [field]: value
-    });
+    let value = event.target.type === 'checkbox' ? event.target.checked : event.target.value;
+    if(field === 'cardNumber') value = formatCardNumber(value);
+    if(field === 'expiryDate') value = formatExpiry(value);
+    if(field === 'cvc') value = value.replace(/[^0-9]/g,'').slice(0,4);
+    setFormData(f=>({ ...f, [field]: value }));
   };
+
+  // --- Validation state (computed) ---
+  const validation = useMemo(()=>{
+    const errors = {};
+    const cardDigits = normalizeCard(formData.cardNumber);
+    if(!formData.cardholderName.trim()) errors.cardholderName = 'Required';
+    if(!cardDigits) errors.cardNumber = 'Required';
+    else if(looksFake(cardDigits)) errors.cardNumber = 'Invalid number';
+    else if(cardDigits.length < 13 || cardDigits.length > 19) errors.cardNumber = 'Length 13-19 digits';
+    else if(!luhnValid(cardDigits)) errors.cardNumber = 'Failed checksum';
+    if(!formData.expiryDate) errors.expiryDate = 'Required';
+    else if(!expiryValid(formData.expiryDate)) errors.expiryDate = 'Invalid or expired';
+    if(!formData.cvc) errors.cvc = 'Required';
+    else if(!cvcValid(formData.cvc)) errors.cvc = '3 or 4 digits';
+    if(!formData.billingAddress.trim()) errors.billingAddress = 'Required';
+    if(!formData.city.trim()) errors.city = 'Required';
+    if(!formData.postalCode.trim()) errors.postalCode = 'Required';
+    return { errors, isValid: Object.keys(errors).length === 0 && formData.agreeToTerms };
+  }, [formData]);
 
   const handleSubmit = (event) => {
     event.preventDefault();
-    console.log('Payment form submitted:', formData);
-    alert('Payment information submitted! Check console for details.');
+    setAttemptedSubmit(true);
+    if(!validation.isValid) return; // do not proceed if invalid
+    const token = localStorage.getItem('access_token');
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    // Compute total amount if not already present in bookingData (fallback simple example)
+  const totalAmount = bookingData?.totalAmount || bookingData?.total_amount || 0;
+    const payload = {
+      package_id: packageId,
+      travel_date: bookingData?.travelDate || bookingData?.travel_date || '',
+      adults: Number(bookingData?.adults)||0,
+      children: Number(bookingData?.children)||0,
+      guide_language: bookingData?.language || bookingData?.guide_language || '',
+      total_amount: totalAmount,
+  billing_address: formData.billingAddress,
+      city: formData.city,
+      postal_code: formData.postalCode
+    };
+
+    const headers = { 'Content-Type':'application/json', ...(token?{Authorization:`Bearer ${token}`}:{}) };
+
+    (async()=>{
+      let bookingResponse = null;
+      try{
+        const res = await fetch(`${apiBase}/api/v1/bookings/`, { method:'POST', headers, body: JSON.stringify(payload) });
+        if(res.status === 201){
+          bookingResponse = await res.json();
+          // Mark payment status success locally (future: PATCH endpoint after real payment)
+          if(bookingResponse){
+            bookingResponse.payment_status = 'success';
+          }
+        }
+      }catch(e){ /* ignore */ }
+
+      // Increment booking count separately (optional)
+      if(packageId){
+        try {
+          fetch(`${apiBase}/api/v1/tour-packages/${packageId}/increment-bookings`, { method:'POST', headers, body: JSON.stringify({ delta:1 }) }).catch(()=>{});
+        } catch(e){/* ignore */}
+      }
+
+      // Clear persisted data
+      try { sessionStorage.removeItem('bookingFormData'); } catch {}
+      try { sessionStorage.removeItem('bookingFlowExpiry'); } catch {}
+  navigate('/booking/confirmation', { state:{ packageId, bookingData: { ...bookingData, totalAmount }, payment: formData, booking: bookingResponse } });
+    })();
   };
 
   const inputStyle = {
@@ -72,12 +245,18 @@ function PaymentInformation() {
     e.target.style.boxShadow = '0 0 0 3px rgba(0, 167, 157, 0.1)';
   };
 
-  const handleBlur = (e) => {
+  const handleBlur = (field) => (e) => {
     e.target.style.borderColor = '#e9ecef';
     e.target.style.boxShadow = 'none';
+    setTouched(t=>({...t,[field]:true}));
   };
 
+  const errorText = (msg) => msg ? (<div style={{color:'#d93025',fontSize:12,marginTop:6,fontFamily:'system-ui,-apple-system,sans-serif'}}>{msg}</div>) : null;
+  const showError = (field) => !!validation.errors[field] && (touched[field] || attemptedSubmit);
+
   return (
+    <>
+    <Navbar />
     <div style={{
       minHeight: '100vh',
       padding: '3rem 1rem',
@@ -95,8 +274,60 @@ function PaymentInformation() {
         marginBottom: '2rem',
         fontFamily: 'system-ui, -apple-system, sans-serif'
       }}>
-        Your Payment is Safe with Us !
+        Secure Payment
       </h1>
+      {/* Countdown Timer */}
+      <div style={{
+        marginBottom:'1.5rem',
+        display:'flex',
+        justifyContent:'center',
+        width:'100%'
+      }}>
+        <div style={{
+          background: expired ? '#ffe5e5' : '#E6FAF9',
+          border: `1px solid ${expired ? '#ffb3b3' : '#b6e9e4'}`,
+          color: expired ? '#b00020' : '#007f78',
+          padding:'8px 18px',
+          borderRadius:30,
+          fontFamily:'system-ui,-apple-system,sans-serif',
+          fontSize:14,
+          fontWeight:500,
+          letterSpacing:0.5,
+          boxShadow:'0 2px 6px rgba(0,0,0,0.08)'
+        }}>
+          {expired ? 'Payment session expired. Form reset.' : `Time left: ${formatTime(timeLeft)}`}
+        </div>
+      </div>
+      {/* Expiry Warning (final 60s) */}
+      {!expired && timeLeft <= 60 && (
+        <div style={{
+          marginBottom:'1.5rem',
+          maxWidth:800,
+          width:'100%',
+          background:'#fff4e5',
+          border:'1px solid #ffd8a8',
+          color:'#b54708',
+          padding:'10px 16px',
+          borderRadius:12,
+          fontFamily:'system-ui,-apple-system,sans-serif',
+          fontSize:14,
+          display:'flex',
+          alignItems:'center',
+          gap:12,
+          boxShadow:'0 2px 6px rgba(0,0,0,0.06)'
+        }} role="alert" aria-live="assertive">
+          <span style={{
+            display:'inline-block',
+            width:10,
+            height:10,
+            borderRadius:'50%',
+            background:'#ff922b',
+            boxShadow:'0 0 0 4px rgba(255,146,43,0.25)'
+          }} />
+          <strong style={{fontWeight:600}}>Almost there!</strong>
+          <span>Your session will expire in {timeLeft} second{timeLeft!==1?'s':''}. Submit payment to finish.</span>
+        </div>
+      )}
 
       {/* Progress Indicator */}
       <div style={{
@@ -105,109 +336,26 @@ function PaymentInformation() {
         marginBottom: '3rem',
         gap: '2rem'
       }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: '#00A79D',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 'bold',
-            fontSize: '18px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
-            1
-          </div>
-          <span style={{
-            fontSize: '14px',
-            color: '#00A79D',
-            fontWeight: '500',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
-            Reservation Summary
-          </span>
-        </div>
-        
-        <div style={{
-          width: '60px',
-          height: '2px',
-          backgroundColor: '#00A79D'
-        }}></div>
-        
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: '#00A79D',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 'bold',
-            fontSize: '18px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
-            2
-          </div>
-          <span style={{
-            fontSize: '14px',
-            color: '#00A79D',
-            fontWeight: '500',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
-            Payment Details
-          </span>
-        </div>
-        
-        <div style={{
-          width: '60px',
-          height: '2px',
-          backgroundColor: '#e0e0e0'
-        }}></div>
-        
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '0.5rem'
-        }}>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '50%',
-            backgroundColor: '#e0e0e0',
-            color: '#999',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 'bold',
-            fontSize: '18px',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
-            3
-          </div>
-          <span style={{
-            fontSize: '14px',
-            color: '#999',
-            fontWeight: '500',
-            fontFamily: 'system-ui, -apple-system, sans-serif'
-          }}>
-            Confirmation
-          </span>
+        {/* Stepper (steps 1 & 2 active, 3 current) */}
+        {/** Booking Details -> Review & Confirm -> Payment **/}
+        <div style={{ display:'flex', alignItems:'center', gap:'2rem' }}>
+          {['Booking Details','Review & Confirm','Payment'].map((label, idx)=>{
+            const step = idx+1;
+            const isActive = step < 3; // completed
+            const isCurrent = step === 3;
+            const bg = isCurrent ? '#00A79D' : (isActive ? '#00A79D' : '#e0e0e0');
+            const color = isCurrent || isActive ? 'white' : '#999';
+            const labelColor = isCurrent || isActive ? '#00A79D' : '#999';
+            return (
+              <React.Fragment key={label}>
+                <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' }}>
+                  <div style={{ width:40,height:40,borderRadius:'50%',backgroundColor:bg,color,display:'flex',alignItems:'center',justifyContent:'center',fontWeight:'bold',fontSize:18,fontFamily:'system-ui,-apple-system,sans-serif' }}>{step}</div>
+                  <span style={{ fontSize:14,color:labelColor,fontWeight:500,fontFamily:'system-ui,-apple-system,sans-serif' }}>{label}</span>
+                </div>
+                {step < 3 && <div style={{ width:60,height:2, backgroundColor: step < 3 ? '#00A79D' : '#e0e0e0' }} />}
+              </React.Fragment>
+            );
+          })}
         </div>
       </div>
 
@@ -241,7 +389,7 @@ function PaymentInformation() {
           {/* Cardholder Name */}
           <div>
             <label style={labelStyle}>
-              Cardholder Name
+              Cardholder Name <span style={{color:'#d93025'}}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <CreditCard style={iconStyle} />
@@ -252,15 +400,16 @@ function PaymentInformation() {
                 onChange={handleInputChange('cardholderName')}
                 style={inputStyle}
                 onFocus={handleFocus}
-                onBlur={handleBlur}
+                onBlur={handleBlur('cardholderName')}
               />
             </div>
+            {showError('cardholderName') && errorText(validation.errors.cardholderName)}
           </div>
 
           {/* Card Number */}
           <div>
             <label style={labelStyle}>
-              Card Number
+              Card Number <span style={{color:'#d93025'}}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <CreditCard style={iconStyle} />
@@ -271,9 +420,10 @@ function PaymentInformation() {
                 onChange={handleInputChange('cardNumber')}
                 style={inputStyle}
                 onFocus={handleFocus}
-                onBlur={handleBlur}
+                onBlur={handleBlur('cardNumber')}
               />
             </div>
+            {showError('cardNumber') && errorText(validation.errors.cardNumber)}
           </div>
 
           {/* Expiry Date and CVC */}
@@ -284,7 +434,7 @@ function PaymentInformation() {
           }}>
             <div>
               <label style={labelStyle}>
-                Expiry Date
+                Expiry Date <span style={{color:'#d93025'}}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Calendar style={iconStyle} />
@@ -295,14 +445,15 @@ function PaymentInformation() {
                   onChange={handleInputChange('expiryDate')}
                   style={inputStyle}
                   onFocus={handleFocus}
-                  onBlur={handleBlur}
+                  onBlur={handleBlur('expiryDate')}
                 />
               </div>
+              {showError('expiryDate') && errorText(validation.errors.expiryDate)}
             </div>
 
             <div>
               <label style={labelStyle}>
-                CVC
+                CVC <span style={{color:'#d93025'}}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <Lock style={iconStyle} />
@@ -313,9 +464,10 @@ function PaymentInformation() {
                   onChange={handleInputChange('cvc')}
                   style={inputStyle}
                   onFocus={handleFocus}
-                  onBlur={handleBlur}
+                  onBlur={handleBlur('cvc')}
                 />
               </div>
+              {showError('cvc') && errorText(validation.errors.cvc)}
             </div>
           </div>
 
@@ -338,7 +490,7 @@ function PaymentInformation() {
             {/* Street Address */}
             <div style={{ marginBottom: '1.5rem' }}>
               <label style={labelStyle}>
-                Street Address
+                Street Address <span style={{color:'#d93025'}}>*</span>
               </label>
               <div style={{ position: 'relative' }}>
                 <MapPin style={iconStyle} />
@@ -349,9 +501,10 @@ function PaymentInformation() {
                   onChange={handleInputChange('billingAddress')}
                   style={inputStyle}
                   onFocus={handleFocus}
-                  onBlur={handleBlur}
+                  onBlur={handleBlur('billingAddress')}
                 />
               </div>
+              {showError('billingAddress') && errorText(validation.errors.billingAddress)}
             </div>
 
             {/* City and Postal Code */}
@@ -362,7 +515,7 @@ function PaymentInformation() {
             }}>
               <div>
                 <label style={labelStyle}>
-                  City
+                  City <span style={{color:'#d93025'}}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Building style={iconStyle} />
@@ -373,14 +526,15 @@ function PaymentInformation() {
                     onChange={handleInputChange('city')}
                     style={inputStyle}
                     onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    onBlur={handleBlur('city')}
                   />
                 </div>
+                {showError('city') && errorText(validation.errors.city)}
               </div>
 
               <div>
                 <label style={labelStyle}>
-                  Postal/Zip Code
+                  Postal/Zip Code <span style={{color:'#d93025'}}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <Mail style={iconStyle} />
@@ -391,9 +545,10 @@ function PaymentInformation() {
                     onChange={handleInputChange('postalCode')}
                     style={inputStyle}
                     onFocus={handleFocus}
-                    onBlur={handleBlur}
+                    onBlur={handleBlur('postalCode')}
                   />
                 </div>
+                {showError('postalCode') && errorText(validation.errors.postalCode)}
               </div>
             </div>
           </div>
@@ -521,6 +676,7 @@ function PaymentInformation() {
           }}>
             <button
               type="button"
+              onClick={()=> navigate('/booking/review', { state:{ packageId, bookingData } })}
               style={{
                 flex: 1,
                 padding: '12px 24px',
@@ -547,38 +703,44 @@ function PaymentInformation() {
             </button>
             <button
               type="submit"
+              disabled={!validation.isValid || expired}
               onClick={handleSubmit}
               style={{
                 flex: 1,
                 padding: '12px 24px',
-                backgroundColor: '#00A79D',
+                backgroundColor: (!expired && validation.isValid) ? '#00A79D' : '#9ccfcb',
                 color: 'white',
                 border: 'none',
                 borderRadius: '12px',
                 fontSize: '16px',
                 fontWeight: 'bold',
                 fontFamily: 'system-ui, -apple-system, sans-serif',
-                cursor: 'pointer',
-                boxShadow: '0 4px 15px rgba(0, 167, 157, 0.3)',
-                transition: 'all 0.2s ease'
+                cursor: (!expired && validation.isValid) ? 'pointer' : 'not-allowed',
+                boxShadow: (!expired && validation.isValid) ? '0 4px 15px rgba(0, 167, 157, 0.3)' : 'none',
+                transition: 'all 0.2s ease',
+                opacity: (!expired && validation.isValid) ? 1 : 0.8
               }}
               onMouseEnter={(e) => {
+                if(!validation.isValid || expired) return;
                 e.target.style.backgroundColor = '#008A80';
                 e.target.style.boxShadow = '0 6px 20px rgba(0, 167, 157, 0.4)';
                 e.target.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
+                if(!validation.isValid || expired) return;
                 e.target.style.backgroundColor = '#00A79D';
                 e.target.style.boxShadow = '0 4px 15px rgba(0, 167, 157, 0.3)';
                 e.target.style.transform = 'translateY(0)';
               }}
             >
-              Next
+              Confirm
             </button>
           </div>
         </div>
       </div>
-    </div>
+  </div>
+  <Footer_Combination />
+  </>
   );
 }
 

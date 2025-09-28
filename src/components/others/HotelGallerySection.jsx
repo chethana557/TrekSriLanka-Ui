@@ -1,34 +1,12 @@
 import React, { useState } from 'react';
 import { Star, X, ChevronLeft, ChevronRight } from 'lucide-react';
 
-// Sample hotel images (you can replace these with actual hotel images)
-const hotelImages = [
-  {
-    id: 1,
-    src: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-    alt: 'Hotel terrace with ocean view'
-  },
-  {
-    id: 2,
-    src: 'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-    alt: 'Luxury hotel lobby'
-  },
-  {
-    id: 3,
-    src: 'https://images.unsplash.com/photo-1584132967334-10e028bd69f7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-    alt: 'Hotel bedroom'
-  },
-  {
-    id: 4,
-    src: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-    alt: 'Hotel dining area'
-  },
-  {
-    id: 5,
-    src: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-    alt: 'Ocean view from hotel'
+function normalizeImages(images) {
+  if (!images || images.length === 0) {
+    return [];
   }
-];
+  return images.map((src, idx) => ({ id: idx + 1, src, alt: `Hotel photo ${idx + 1}` }));
+}
 
 const styles = {
   container: {
@@ -213,12 +191,20 @@ const styles = {
   }
 };
 
-function HotelGallerySection() {
+function HotelGallerySection({ images = [], feedbackCount = 0 }) {
+  const hotelImages = normalizeImages(images);
+  const safeImages = hotelImages.length > 0 ? hotelImages : [
+    { id: 1, src: 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="%2300A79D"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="48" fill="white" font-family="Arial">No Photos</text></svg>', alt: 'No photos available' }
+  ];
   const [selectedImage, setSelectedImage] = useState(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const rating = 5.0;
-  const totalPhotos = 40;
+  // rating derived from feedbackCount (capped 0-5)
+  const rating = Math.min(5, Math.max(0, Number(feedbackCount) || 0));
+  // Dynamic photo counting
+  const totalPhotos = hotelImages.length; // total real photos passed in
+  const displayedPhotos = Math.min(4, safeImages.length); // how many we actually show in grid
+  const remainingPhotos = Math.max(0, totalPhotos - displayedPhotos); // count for overlay (if any)
 
   React.useEffect(() => {
     const handleResize = () => {
@@ -230,7 +216,7 @@ function HotelGallerySection() {
 
   const openModal = (imageIndex) => {
     setCurrentImageIndex(imageIndex);
-    setSelectedImage(hotelImages[imageIndex]);
+  if (safeImages[imageIndex]) setSelectedImage(safeImages[imageIndex]);
   };
 
   const closeModal = () => {
@@ -238,15 +224,15 @@ function HotelGallerySection() {
   };
 
   const nextImage = () => {
-    const nextIndex = (currentImageIndex + 1) % hotelImages.length;
+  const nextIndex = (currentImageIndex + 1) % safeImages.length;
     setCurrentImageIndex(nextIndex);
-    setSelectedImage(hotelImages[nextIndex]);
+  setSelectedImage(safeImages[nextIndex]);
   };
 
   const prevImage = () => {
-    const prevIndex = (currentImageIndex - 1 + hotelImages.length) % hotelImages.length;
+  const prevIndex = (currentImageIndex - 1 + safeImages.length) % safeImages.length;
     setCurrentImageIndex(prevIndex);
-    setSelectedImage(hotelImages[prevIndex]);
+  setSelectedImage(safeImages[prevIndex]);
   };
 
   const renderStars = (rating) => {
@@ -299,16 +285,14 @@ function HotelGallerySection() {
             onMouseEnter={(e) => handleImageHover(e, true)}
             onMouseLeave={(e) => handleImageHover(e, false)}
           >
-            <img
-              src={hotelImages[0].src}
-              alt={hotelImages[0].alt}
-              style={styles.image}
-            />
+            {safeImages[0] && (
+              <img src={safeImages[0].src} alt={safeImages[0].alt} style={styles.image} />
+            )}
           </div>
           
           {/* Small images grid */}
           <div style={styles.mobileSmallImagesGrid}>
-            {hotelImages.slice(1, 4).map((image, index) => (
+            {safeImages.slice(1, 4).map((image, index) => (
               <div 
                 key={image.id}
                 style={styles.mobileSmallImage}
@@ -321,9 +305,9 @@ function HotelGallerySection() {
                   alt={image.alt}
                   style={styles.image}
                 />
-                {index === 2 && (
+                {index === 2 && remainingPhotos > 0 && (
                   <div style={styles.photoOverlay}>
-                    + {totalPhotos} Photos
+                    + {remainingPhotos} Photos
                   </div>
                 )}
               </div>
@@ -331,23 +315,12 @@ function HotelGallerySection() {
           </div>
         </div>
 
-        {/* Mobile Bottom Section */}
+        {/* Mobile Bottom Section (rating only, reserve moved below rooms) */}
         <div style={styles.mobileBottomSection}>
           <div style={styles.ratingContainer}>
-            <div style={styles.starsContainer}>
-              {renderStars(rating)}
-            </div>
-            <span style={styles.ratingText}>
-              {rating.toFixed(1)}
-            </span>
+            <div style={styles.starsContainer}>{renderStars(rating)}</div>
+            <span style={styles.ratingText}>{rating.toFixed(1)}</span>
           </div>
-          <button 
-            style={styles.reserveButton}
-            onMouseEnter={(e) => handleButtonHover(e, true)}
-            onMouseLeave={(e) => handleButtonHover(e, false)}
-          >
-            Reserve
-          </button>
         </div>
 
         {/* Modal */}
@@ -412,11 +385,7 @@ function HotelGallerySection() {
           onMouseEnter={(e) => handleImageHover(e, true)}
           onMouseLeave={(e) => handleImageHover(e, false)}
         >
-          <img
-            src={hotelImages[0].src}
-            alt={hotelImages[0].alt}
-            style={styles.image}
-          />
+          {safeImages[0] && <img src={safeImages[0].src} alt={safeImages[0].alt} style={styles.image} />}
         </div>
         
         {/* Top right image */}
@@ -426,11 +395,7 @@ function HotelGallerySection() {
           onMouseEnter={(e) => handleImageHover(e, true)}
           onMouseLeave={(e) => handleImageHover(e, false)}
         >
-          <img
-            src={hotelImages[1].src}
-            alt={hotelImages[1].alt}
-            style={styles.image}
-          />
+          {safeImages[1] && <img src={safeImages[1].src} alt={safeImages[1].alt} style={styles.image} />}
         </div>
         
         {/* Bottom right images */}
@@ -441,11 +406,7 @@ function HotelGallerySection() {
             onMouseEnter={(e) => handleImageHover(e, true)}
             onMouseLeave={(e) => handleImageHover(e, false)}
           >
-            <img
-              src={hotelImages[2].src}
-              alt={hotelImages[2].alt}
-              style={styles.image}
-            />
+            {safeImages[2] && <img src={safeImages[2].src} alt={safeImages[2].alt} style={styles.image} />}
           </div>
           
           <div 
@@ -454,36 +415,22 @@ function HotelGallerySection() {
             onMouseEnter={(e) => handleImageHover(e, true)}
             onMouseLeave={(e) => handleImageHover(e, false)}
           >
-            <img
-              src={hotelImages[3].src}
-              alt={hotelImages[3].alt}
-              style={styles.image}
-            />
-            <div style={styles.photoOverlay}>
-              + {totalPhotos} Photos
-            </div>
+            {safeImages[3] && <img src={safeImages[3].src} alt={safeImages[3].alt} style={styles.image} />}
+            {remainingPhotos > 0 && (
+              <div style={styles.photoOverlay}>
+                + {remainingPhotos} Photos
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Rating and Reserve Section */}
+      {/* Rating Section (reserve button relocated beneath room types) */}
       <div style={styles.bottomSection}>
         <div style={styles.ratingContainer}>
-          <div style={styles.starsContainer}>
-            {renderStars(rating)}
-          </div>
-          <span style={styles.ratingText}>
-            {rating.toFixed(1)}
-          </span>
+          <div style={styles.starsContainer}>{renderStars(rating)}</div>
+          <span style={styles.ratingText}>{rating.toFixed(1)}</span>
         </div>
-
-        <button 
-          style={styles.reserveButton}
-          onMouseEnter={(e) => handleButtonHover(e, true)}
-          onMouseLeave={(e) => handleButtonHover(e, false)}
-        >
-          Reserve
-        </button>
       </div>
 
       {/* Modal for enlarged images */}

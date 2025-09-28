@@ -24,6 +24,7 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import HelpIcon from '@mui/icons-material/Help';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import LogoutIcon from '@mui/icons-material/Logout';
+import { getCurrentUser, clearUserCredentials } from '../../utils/authUtils';
 
 // Admin navigation items with their corresponding routes
 const adminPages = [
@@ -32,7 +33,9 @@ const adminPages = [
   { name: 'Tour Packages', path: '/admin/tour-packages' },
   { name: 'Bookings', path: '/admin/bookings' },
   { name: 'Destinations', path: '/admin/destinations' },
+  { name: 'Main Cities', path: '/admin/main-cities' },
   { name: 'Resources', path: '/admin/resources' },
+  { name: 'Hotel Requests', path: '/admin/hotel-requests' },
   { name: 'Messages', path: '/admin/messages' },
   { name: 'Feedback', path: '/admin/feedback' }
 ];
@@ -46,11 +49,12 @@ function AdminNavBar() {
 
   React.useEffect(() => {
     const fetchProfile = async () => {
-      const token = localStorage.getItem('access_token');
-      if (!token) return;
+      const currentUser = getCurrentUser();
+      if (!currentUser) return;
+      
       try {
         const res = await fetch(`${BASE_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
+          headers: { Authorization: `Bearer ${currentUser.accessToken}` },
         });
         if (res.ok) {
           const data = await res.json();
@@ -79,9 +83,16 @@ function AdminNavBar() {
 
   const handleLogout = async () => {
     try {
-      await fetch(`${BASE_URL}/auth/logout`, { method: 'POST' });
+      const currentUser = getCurrentUser();
+      if (currentUser) {
+        await fetch(`${BASE_URL}/auth/logout`, { 
+          method: 'POST',
+          headers: { Authorization: `Bearer ${currentUser.accessToken}` }
+        });
+      }
     } catch (e) {}
-    localStorage.clear();
+    
+    clearUserCredentials();
     handleCloseAvatarMenu();
     navigate('/');
   };

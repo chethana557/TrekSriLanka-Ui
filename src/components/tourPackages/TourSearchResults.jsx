@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useCurrency } from '../../contexts/CurrencyContext.jsx';
 import {
   Box,
   Typography,
@@ -61,10 +63,18 @@ const inclusionIcons = {
   'Tea Factory Tours': <LocationOn fontSize="small" />
 };
 
+// Price formatter
+const formatPrice = (val) => {
+  if (typeof val !== 'number' || isNaN(val)) return '0';
+  return new Intl.NumberFormat('en-LK').format(val);
+};
+
 function TourSearchResults({ searchResults = [], searchParams, loading = false, onNewSearch }) {
   const [sortBy, setSortBy] = useState('recommended');
   const [favorites, setFavorites] = useState(new Set());
   const results = searchResults;
+  const { selectedCurrency, setSelectedCurrency, format, currencies } = useCurrency();
+  const navigate = useNavigate();
 
   const toggleFavorite = (id) => {
     const newFavorites = new Set(favorites);
@@ -97,20 +107,18 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
   if (loading) {
     return (
       <Box sx={{ py: 4, px: 2, maxWidth: '1400px', mx: 'auto' }}>
-        <Grid container spacing={3}>
-          {[1, 2, 3, 4, 5, 6].map((item) => (
-            <Grid item xs={12} sm={6} lg={4} key={item}>
-              <Card sx={{ height: '100%' }}>
-                <Skeleton variant="rectangular" height={200} />
-                <CardContent>
-                  <Skeleton variant="text" height={30} />
-                  <Skeleton variant="text" height={20} />
-                  <Skeleton variant="text" height={20} />
-                </CardContent>
-              </Card>
-            </Grid>
+  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'flex-start' }}>
+          {[1,2,3,4,5,6].map(i => (
+            <Card key={i} sx={{ width: 320, height: 560, display:'flex', flexDirection:'column', borderRadius:'16px' }}>
+              <Skeleton variant="rectangular" height={200} />
+              <CardContent sx={{ flexGrow:1 }}>
+                <Skeleton variant="text" height={30} />
+                <Skeleton variant="text" height={20} />
+                <Skeleton variant="text" height={20} />
+              </CardContent>
+            </Card>
           ))}
-        </Grid>
+        </Box>
       </Box>
     );
   }
@@ -138,7 +146,7 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
           </Typography>
         )}
 
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
+  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
           <Box>
             <Typography variant="body1" sx={{ color: '#333' }}>
               {results.length} tour packages found
@@ -169,6 +177,25 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
             )}
           </Box>
           
+          <Box sx={{ display:'flex', gap:2, alignItems:'center' }}>
+            <FormControl size="small" sx={{ minWidth: 140 }}>
+              <InputLabel sx={{ color: '#666' }}>Currency</InputLabel>
+              <Select
+                value={selectedCurrency}
+                label="Currency"
+                onChange={(e)=>setSelectedCurrency(e.target.value)}
+                sx={{
+                  borderRadius: '20px',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#e0e0e0' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#00A79D' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#00A79D' }
+                }}
+              >
+                {currencies.map(c => (
+                  <MenuItem key={c.code} value={c.code}>{c.symbol} {c.code}</MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel sx={{ color: '#666' }}>Sort by</InputLabel>
             <Select
@@ -196,32 +223,31 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
               <MenuItem value="duration">Duration</MenuItem>
             </Select>
           </FormControl>
+          </Box>
         </Box>
       </Box>
 
       {/* Results Grid */}
       {results.length > 0 && (
         <>
-          <Grid container spacing={3}>
+          <Box sx={{ display:'flex', flexWrap:'wrap', gap:3, justifyContent:'flex-start' }}>
             {sortedResults.map((tour) => (
-              <Grid item xs={12} sm={6} lg={4} key={tour.id}>
-                <Card 
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: '16px',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-                    },
-                    position: 'relative',
-                    overflow: 'hidden',
-                    maxWidth: '400px',
-                    mx: 'auto'
-                  }}
-                >
+              <Card
+                key={tour.id}
+                sx={{
+                  width: 320,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '16px',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+                  },
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
                   {/* Featured Badge */}
                   {tour.featured && (
                     <Chip
@@ -302,7 +328,7 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
                   </Box>
 
                   {/* Tour Details */}
-                  <CardContent sx={{ flexGrow: 1, p: 2 }}>
+                  <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Typography 
                         variant="h6" 
@@ -346,12 +372,24 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
                       </Typography>
                     </Box>
 
-                    <Typography variant="body2" sx={{ color: '#333', mb: 2, lineHeight: 1.4 }}>
-                      {tour.description}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: '#333',
+                        mb: 2,
+                        lineHeight: 1.4,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        minHeight: '64px'
+                      }}
+                    >
+                      {tour.description || 'No description provided.'}
                     </Typography>
 
                     {/* Tour Highlights */}
-                    <Box sx={{ mb: 2 }}>
+                    <Box sx={{ mb: 2, display: 'flex', flexDirection: 'column' }}>
                       <Typography variant="body2" sx={{ fontWeight: 'bold', color: '#333', mb: 1 }}>
                         Highlights:
                       </Typography>
@@ -378,8 +416,8 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
                     </Box>
 
                     {/* Inclusions */}
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                      {tour.inclusions.slice(0, 4).map((inclusion) => (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2, alignContent: 'flex-start' }}>
+                      {tour.inclusions.slice(0, 3).map((inclusion) => (
                         <Box
                           key={inclusion}
                           sx={{
@@ -397,46 +435,51 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
                           <Typography variant="caption">{inclusion}</Typography>
                         </Box>
                       ))}
-                      {tour.inclusions.length > 4 && (
+            {tour.inclusions.length > 3 && (
                         <Typography variant="caption" sx={{ color: '#666', alignSelf: 'center' }}>
-                          +{tour.inclusions.length - 4} more
+              +{tour.inclusions.length - 3} more
                         </Typography>
                       )}
                     </Box>
 
                     {/* Price */}
-                    <Box sx={{ mt: 'auto' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            color: '#00A79D', 
-                            fontWeight: 'bold',
-  
-                          }}
-                        >
-                          LKR {tour.price.toLocaleString()}
-                        </Typography>
-                        {tour.originalPrice && (
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              textDecoration: 'line-through', 
-                              color: '#999' 
-                            }}
+                    <Box sx={{ mt: 'auto', pt: 1, borderTop: '1px solid #f2f4f5' }}>
+          {tour.package_price && (
+                        <Box sx={{ mb: 0.75 }}>
+                          <Typography
+                            variant="h6"
+                            sx={{ color: '#00A79D', fontWeight: 'bold', lineHeight: 1.15 }}
                           >
-                            LKR {tour.originalPrice.toLocaleString()}
+            {format(tour.package_price)}
                           </Typography>
-                        )}
-                      </Box>
-                      <Typography variant="caption" sx={{ color: '#666' }}>
-                        per person
-                      </Typography>
+                          <Typography variant="caption" sx={{ color: '#666', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            Package Price
+                            {typeof tour.person_count === 'number' && tour.person_count > 0 && (
+                              <>
+                                <span style={{ color: '#ccc' }}>|</span>
+                                <Group sx={{ fontSize: 14, color: '#00A79D' }} />
+                                {tour.person_count} {tour.person_count === 1 ? 'person' : 'persons'}
+                              </>
+                            )}
+                          </Typography>
+                        </Box>
+                      )}
+          {tour.price && (
+                        <Typography
+                          variant="body2"
+                          sx={{ color: '#00A79D', fontWeight: 'bold', lineHeight: 1.2 }}
+                        >
+          {format(tour.price)}{' '}
+                          <Typography component="span" variant="caption" sx={{ color: '#666', fontWeight: 'normal' }}>
+                            / person
+                          </Typography>
+                        </Typography>
+                      )}
                     </Box>
                   </CardContent>
 
                   {/* Action Buttons */}
-                  <CardActions sx={{ p: 2, pt: 0 }}>
+                  <CardActions sx={{ p: 2, pt: 0, mt: 'auto' }}>
                     <Button
                       variant="outlined"
                       size="small"
@@ -453,6 +496,7 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
                           color: '#008A82'
                         }
                       }}
+                      onClick={()=>navigate(`/packages/${tour.id}`)}
                     >
                       View Details
                     </Button>
@@ -469,39 +513,23 @@ function TourSearchResults({ searchResults = [], searchParams, loading = false, 
                           bgcolor: '#008A82'
                         }
                       }}
+                      onClick={()=>{
+                        const token = localStorage.getItem('access_token');
+                        if(!token){
+                          navigate('/login', { state:{ redirect: '/packages' } });
+                          return;
+                        }
+                        navigate('/booking', { state: { packageId: tour.id } });
+                      }}
                     >
                       Book Tour
                     </Button>
                   </CardActions>
-                </Card>
-              </Grid>
+        </Card>
             ))}
-          </Grid>
+      </Box>
 
-          {/* Load More Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-            <Button
-              variant="outlined"
-              size="large"
-              sx={{
-                borderColor: '#00A79D',
-                color: '#00A79D',
-                borderRadius: '25px',
-                px: 4,
-                py: 1.5,
-                textTransform: 'none',
-                fontWeight: 'bold',
-                fontSize: '1rem',
-                '&:hover': {
-                  borderColor: '#008A82',
-                  color: '#008A82',
-                  bgcolor: 'rgba(0, 167, 157, 0.05)'
-                }
-              }}
-            >
-              Load More Tour Packages
-            </Button>
-          </Box>
+          {/* Load More removed as requested */}
         </>
       )}
     </Box>

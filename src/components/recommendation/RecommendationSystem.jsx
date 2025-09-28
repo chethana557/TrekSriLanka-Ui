@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Star, Activity, Loader2, AlertCircle, Plane, Compass } from 'lucide-react';
+import { MapPin, Star, Activity, Loader2, AlertCircle, Plane, Compass, Sparkles, Map, Target } from 'lucide-react';
+import SearchIcon from '@mui/icons-material/Search';
 import { BASE_URL } from '../../api/index.js';
 import {
   Box,
@@ -17,6 +18,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  InputBase,
   Paper,
   IconButton,
   Avatar,
@@ -24,7 +26,11 @@ import {
   List,
   ListItem,
   ListItemIcon,
-  ListItemText
+  ListItemText,
+  Fade,
+  Grow,
+  CircularProgress,
+  Backdrop
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
@@ -37,14 +43,7 @@ const popularActivities = [
 
 // Styled components
 const StyledCard = styled(Card)(({ theme }) => ({
-  borderRadius: 16,
-  boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-  border: '1px solid #f0f0f0',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    boxShadow: '0 8px 30px rgba(0, 0, 0, 0.15)',
-    transform: 'translateY(-2px)'
-  }
+
 }));
 
 const StyledButton = styled(Button)(({ theme }) => ({
@@ -56,16 +55,16 @@ const StyledButton = styled(Button)(({ theme }) => ({
 }));
 
 const GradientButton = styled(Button)(({ theme }) => ({
-  background: 'linear-gradient(135deg, #4AB9B0 0%, #FF6B35 100%)',
+  background: '#00A79D',
   borderRadius: 12,
   textTransform: 'none',
   fontWeight: 600,
   padding: '12px 32px',
   color: 'white',
   '&:hover': {
-    background: 'linear-gradient(135deg, #3da89f 0%, #e55a2b 100%)',
+    background: '#009488',
     transform: 'translateY(-1px)',
-    boxShadow: '0 4px 12px rgba(74, 185, 176, 0.3)'
+    boxShadow: '0 4px 12px rgba(0, 167, 157, 0.3)'
   },
   '&:disabled': {
     background: '#e0e0e0',
@@ -102,11 +101,232 @@ const SelectedActivityChip = styled(Chip)(({ theme }) => ({
   }
 }));
 
+// Loading Animation Component
+const LoadingAnimation = ({ loadingStage, activities }) => {
+  const [currentIcon, setCurrentIcon] = useState(0);
+  const [currentMessage, setCurrentMessage] = useState(0);
+  
+  const icons = [
+    { component: Sparkles, color: '#4AB9B0' },
+    { component: Map, color: '#FF6B35' },
+    { component: Target, color: '#4AB9B0' },
+    { component: Compass, color: '#FF6B35' }
+  ];
+  
+  const messages = [
+    'Analyzing your interests...',
+    'Searching through thousands of destinations...',
+    'Finding perfect matches...',
+    'Calculating compatibility scores...',
+    'Preparing your personalized recommendations...'
+  ];
+
+  useEffect(() => {
+    const iconInterval = setInterval(() => {
+      setCurrentIcon((prev) => (prev + 1) % icons.length);
+    }, 1000);
+
+    const messageInterval = setInterval(() => {
+      setCurrentMessage((prev) => (prev + 1) % messages.length);
+    }, 2000);
+
+    return () => {
+      clearInterval(iconInterval);
+      clearInterval(messageInterval);
+    };
+  }, []);
+
+  const IconComponent = icons[currentIcon].component;
+
+  return (
+    <Backdrop
+      open={true}
+      sx={{ 
+        zIndex: 1200,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        backdropFilter: 'blur(10px)'
+      }}
+    >
+      <Card sx={{ 
+        maxWidth: 500, 
+        width: '90%',
+        borderRadius: 4,
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+        overflow: 'visible',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(20px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <CardContent sx={{ p: 6, textAlign: 'center' }}>
+          {/* Animated Icon */}
+          <Box sx={{ 
+            position: 'relative',
+            mb: 4,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
+            <Box sx={{
+              position: 'absolute',
+              width: 120,
+              height: 120,
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${icons[currentIcon].color}20 0%, ${icons[currentIcon].color}10 100%)`,
+              animation: 'pulse 2s ease-in-out infinite'
+            }} />
+            <Box sx={{
+              position: 'absolute',
+              width: 80,
+              height: 80,
+              borderRadius: '50%',
+              background: `linear-gradient(135deg, ${icons[currentIcon].color}40 0%, ${icons[currentIcon].color}20 100%)`,
+              animation: 'pulse 2s ease-in-out infinite 0.5s'
+            }} />
+            <Grow in={true} timeout={500} key={currentIcon}>
+              <Box sx={{ zIndex: 1 }}>
+                <IconComponent 
+                  size={40} 
+                  color={icons[currentIcon].color}
+                  style={{ 
+                    animation: 'float 3s ease-in-out infinite',
+                    filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))'
+                  }}
+                />
+              </Box>
+            </Grow>
+          </Box>
+
+          {/* Loading Progress */}
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h5" sx={{ 
+              fontWeight: 700, 
+              color: '#2c3e50',
+              mb: 2
+            }}>
+              Finding Your Perfect Destinations
+            </Typography>
+            
+            <Fade in={true} timeout={1000} key={currentMessage}>
+              <Typography variant="body1" sx={{ 
+                color: '#7f8c8d',
+                fontWeight: 500,
+                minHeight: '24px',
+                mb: 3
+              }}>
+                {messages[currentMessage]}
+              </Typography>
+            </Fade>
+
+            <LinearProgress 
+              sx={{
+                height: 6,
+                borderRadius: 3,
+                bgcolor: '#ecf0f1',
+                mb: 3,
+                '& .MuiLinearProgress-bar': {
+                  background: `linear-gradient(135deg, ${icons[currentIcon].color} 0%, #FF6B35 100%)`,
+                  borderRadius: 3,
+                  animation: 'wave 2s ease-in-out infinite'
+                }
+              }}
+            />
+
+            {/* Selected Activities Display */}
+            <Box sx={{ mb: 2 }}>
+              <Typography variant="body2" sx={{ 
+                color: '#95a5a6',
+                fontWeight: 600,
+                mb: 1
+              }}>
+                Analyzing interests:
+              </Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center' }}>
+                {activities.slice(0, 6).map((activity, index) => (
+                  <Grow in={true} timeout={300} key={activity} style={{ transitionDelay: `${index * 100}ms` }}>
+                    <Chip
+                      label={activity}
+                      size="small"
+                      sx={{
+                        bgcolor: '#e3f2fd',
+                        color: '#1976d2',
+                        fontSize: '0.75rem',
+                        fontWeight: 500,
+                        animation: 'glow 2s ease-in-out infinite'
+                      }}
+                    />
+                  </Grow>
+                ))}
+                {activities.length > 6 && (
+                  <Chip
+                    label={`+${activities.length - 6} more`}
+                    size="small"
+                    sx={{
+                      bgcolor: '#f8f9fa',
+                      color: '#7f8c8d',
+                      fontSize: '0.75rem'
+                    }}
+                  />
+                )}
+              </Box>
+            </Box>
+          </Box>
+
+          {/* Fun Fact */}
+          <Box sx={{
+            p: 2,
+            bgcolor: '#f8f9fa',
+            borderRadius: 2,
+            border: '1px dashed #bdc3c7'
+          }}>
+            <Typography variant="caption" sx={{ 
+              color: '#7f8c8d',
+              fontStyle: 'italic'
+            }}>
+              💡 Did you know? Our AI analyzes over 10,000 destinations to find your perfect match!
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Add CSS animations to document head */}
+      <style>
+        {`
+          @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+          }
+          
+          @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+          }
+          
+          @keyframes wave {
+            0% { background-position: -200px 0; }
+            100% { background-position: calc(200px + 100%) 0; }
+          }
+          
+          @keyframes glow {
+            0%, 100% { box-shadow: 0 0 5px rgba(74, 185, 176, 0.3); }
+            50% { box-shadow: 0 0 15px rgba(74, 185, 176, 0.6); }
+          }
+          
+          @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+          }
+        `}
+      </style>
+    </Backdrop>
+  );
+};
+
 function RecommendationSystem() {
   const [activities, setActivities] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [recommendations, setRecommendations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState(0);
   const [error, setError] = useState('');
   const [topN, setTopN] = useState(5);
   const [expandedActivities, setExpandedActivities] = useState({});
@@ -135,7 +355,9 @@ function RecommendationSystem() {
     }
 
     setIsLoading(true);
+    setLoadingStage(0);
     setError('');
+    setRecommendations([]); // Clear previous results
 
     // Get authentication token
     const token = localStorage.getItem('access_token');
@@ -148,6 +370,22 @@ function RecommendationSystem() {
     }
 
     try {
+      // Simulate loading stages for better UX
+      const loadingStages = [
+        { delay: 500, stage: 1 },
+        { delay: 1000, stage: 2 },
+        { delay: 1500, stage: 3 },
+        { delay: 2000, stage: 4 }
+      ];
+
+      // Set up loading stage progression
+      const stageTimeouts = loadingStages.map(({ delay, stage }) =>
+        setTimeout(() => {
+          if (isLoading) setLoadingStage(stage);
+        }, delay)
+      );
+
+      // Make the actual API call
       const response = await fetch(`${BASE_URL}/recommendations`, {
         method: 'POST',
         headers: {
@@ -161,6 +399,9 @@ function RecommendationSystem() {
         }),
       });
 
+      // Clear stage timeouts
+      stageTimeouts.forEach(timeout => clearTimeout(timeout));
+
       if (!response.ok) {
         if (response.status === 401) {
           setError('Please log in to get recommendations');
@@ -173,12 +414,17 @@ function RecommendationSystem() {
       }
 
       const data = await response.json();
+      
+      // Add a small delay to show the final loading stage
+      await new Promise(resolve => setTimeout(resolve, 800));
+      
       setRecommendations(data.recommendations);
     } catch (err) {
       setError(`Failed to fetch recommendations. Please ensure the API server is running at ${BASE_URL}`);
       console.error('Error fetching recommendations:', err);
     } finally {
       setIsLoading(false);
+      setLoadingStage(0);
     }
   };
 
@@ -202,45 +448,42 @@ function RecommendationSystem() {
       minHeight: '100vh', 
       py: 4
     }}>
+      {/* Loading Animation Overlay - Backdrop Version */}
+      {isLoading && (
+        <LoadingAnimation 
+          loadingStage={loadingStage} 
+          activities={activities}
+        />
+      )}
+      
       <Container maxWidth="lg">
 
-        {/* Input Section */}
-        <StyledCard sx={{ mb: 4 }}>
-          <CardContent sx={{ p: 4 }}>
-            <Box sx={{ textAlign: 'center', mb: 4 }}>
-              <Typography variant="h3" sx={{ fontWeight: 700, color: '#2c3e50', mb: 1 }}>
-                What are you interested in?
-              </Typography>
-              <Typography variant="h6" sx={{ color: '#7f8c8d', fontWeight: 400 }}>
-                Tell us about your travel preferences and we'll find perfect places for you
-              </Typography>
-            </Box>
-
+        {/* Input Section (no outer card) */}
+        <Box sx={{ mb: 4 }}>
             {/* Activity Input */}
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-                <TextField
-                  fullWidth
-                  variant="outlined"
-                  placeholder="Type an activity or interest..."
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  InputProps={{
-                    startAdornment: <Search style={{ color: '#bdc3c7', marginRight: 8 }} />,
-                    sx: { borderRadius: 2 }
-                  }}
+                <Paper
+                  component="div"
                   sx={{
-                    '& .MuiOutlinedInput-root': {
-                      '&:hover fieldset': {
-                        borderColor: '#4AB9B0',
-                      },
-                      '&.Mui-focused fieldset': {
-                        borderColor: '#4AB9B0',
-                      },
-                    },
+                    p: '2px 4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    width: '100%',
+                    borderRadius: 50,
+                    boxShadow: 3,
                   }}
-                />
+               >
+                  <SearchIcon sx={{ color: 'gray', ml: 2 }} />
+                  <InputBase
+                    sx={{ ml: 1, flex: 1, py: 1.5 }}
+                    placeholder="Type an activity or interest..."
+                    inputProps={{ 'aria-label': 'search interests' }}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                  />
+                </Paper>
                 <StyledButton
                   variant="contained"
                   onClick={() => addActivity(inputValue)}
@@ -256,7 +499,7 @@ function RecommendationSystem() {
               {/* Popular Activities */}
               <Box sx={{ mb: 3 }}>
                 <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#2c3e50', mb: 2 }}>
-                  Popular activities:
+                  Most popular activities:
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                   {popularActivities.slice(0, 10).map((activity) => (
@@ -330,15 +573,51 @@ function RecommendationSystem() {
                   <GradientButton
                     onClick={getRecommendations}
                     disabled={isLoading || activities.length === 0}
-                    startIcon={isLoading ? <Loader2 style={{ animation: 'spin 1s linear infinite' }} /> : <Plane />}
+                    startIcon={isLoading ? <Sparkles style={{ animation: 'spin 1s linear infinite' }} /> : <Plane />}
                   >
-                    {isLoading ? 'Getting Recommendations...' : 'Find Places'}
+                    {isLoading ? 'Finding Your Perfect Destinations...' : 'Find Places'}
                   </GradientButton>
                 </Box>
               </Box>
             </Box>
-          </CardContent>
-        </StyledCard>
+        </Box>
+
+        {/* Loading State Card - Alternative Version (Commented out - using backdrop version) */}
+        {/* {isLoading && (
+          <Fade in={isLoading} timeout={500}>
+            <StyledCard sx={{ mb: 4, textAlign: 'center' }}>
+              <CardContent sx={{ p: 6 }}>
+                <Box sx={{ 
+                  position: 'relative',
+                  mb: 4,
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center'
+                }}>
+                  <Box sx={{
+                    position: 'absolute',
+                    width: 100,
+                    height: 100,
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #4AB9B020 0%, #FF6B3520 100%)',
+                    animation: 'pulse 2s ease-in-out infinite'
+                  }} />
+                  <Sparkles 
+                    size={32} 
+                    color="#4AB9B0"
+                    style={{ 
+                      animation: 'float 3s ease-in-out infinite, spin 2s linear infinite',
+                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.1))',
+                      zIndex: 1
+                    }}
+                  />
+                </Box>
+                <Typography variant="h5">🎯 Finding Your Perfect Destinations</Typography>
+                <LinearProgress sx={{ mt: 2, mb: 2 }} />
+              </CardContent>
+            </StyledCard>
+          </Fade>
+        )} */}
 
         {/* Error Message */}
         {error && (
@@ -459,7 +738,7 @@ function RecommendationSystem() {
                           borderRadius: 4,
                           bgcolor: '#ecf0f1',
                           '& .MuiLinearProgress-bar': {
-                            background: 'linear-gradient(135deg, #4AB9B0 0%, #FF6B35 100%)',
+                            background: '#00A79D',
                             borderRadius: 4
                           }
                         }}

@@ -1,74 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Box, Typography, IconButton, useMediaQuery, useTheme } from '@mui/material';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import { BASE_URL } from '../../api';
 
-const accommodations = [
-  {
-    name: 'Grand Beach Resort',
-    image: 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Mountain View Lodge',
-    image: 'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'City Center Hotel',
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Heritage Manor',
-    image: 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Eco Tree House',
-    image: 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Luxury Villa',
-    image: 'https://images.unsplash.com/photo-1613490493576-7fde63acd811?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Safari Camp',
-    image: 'https://images.unsplash.com/photo-1618773928121-c32242e63f39?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Boutique Inn',
-    image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Hilltop Resort',
-    image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Riverside Retreat',
-    image: 'https://images.unsplash.com/photo-1586611292717-f828b167408c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Wellness Spa Resort',
-    image: 'https://images.unsplash.com/photo-1544148103-0773bf10d330?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Garden Pavilion',
-    image: 'https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Penthouse Suite',
-    image: 'https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Jungle Hideaway',
-    image: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Coastal Cottage',
-    image: 'https://images.unsplash.com/photo-1572120360610-d971b9d7767c?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-  {
-    name: 'Royal Palace Hotel',
-    image: 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-  },
-];
+// Fallback placeholder image (simple SVG data URI) if a hotel has no image
+const PLACEHOLDER_IMG = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600"><rect width="100%" height="100%" fill="%2300A79D"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-size="48" fill="white" font-family="Arial">No Image</text></svg>';
 
 function BookingMoreDestinationsSection() {
   const theme = useTheme();
@@ -87,20 +25,42 @@ function BookingMoreDestinationsSection() {
   const itemsPerView = getItemsToShow();
   const [currentIndex, setCurrentIndex] = useState(0);
   const sliderRef = useRef(null);
+  const [accommodations, setAccommodations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${BASE_URL}/hotels/top/popular`);
+        if (!res.ok) throw new Error(`Failed ${res.status}`);
+        const data = await res.json();
+        if (mounted) setAccommodations(Array.isArray(data.items) ? data.items : []);
+      } catch (e) {
+        if (mounted) setError(e.message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
   
   // Auto-slide animation
   useEffect(() => {
+    if (loading || error || accommodations.length === 0) return; // don't slide if no data
     const autoSlideInterval = setInterval(() => {
       if (currentIndex < accommodations.length - itemsPerView) {
         const newIndex = currentIndex + 1;
         setCurrentIndex(newIndex);
         scrollToIndex(newIndex);
       } else {
-        // Reset to beginning when reaching the end
         setCurrentIndex(0);
         scrollToIndex(0);
       }
-    }, 5000); // Change slide every 5 seconds
+    }, 5000);
     
     return () => clearInterval(autoSlideInterval);
   }, [currentIndex, itemsPerView]);
@@ -201,7 +161,7 @@ function BookingMoreDestinationsSection() {
             </IconButton>
           )}
           
-          {currentIndex < accommodations.length - itemsPerView && (
+          {currentIndex < accommodations.length - itemsPerView && accommodations.length > 0 && (
             <IconButton
               onClick={handleNext}
               sx={{
@@ -234,9 +194,24 @@ function BookingMoreDestinationsSection() {
               position: 'relative',
             }}
           >
-            {accommodations.map((accommodation, index) => (
+            {loading && (
+              <Box sx={{ width: '100%', textAlign: 'center', py: 6 }}>
+                <Typography>Loading accommodations...</Typography>
+              </Box>
+            )}
+            {error && !loading && (
+              <Box sx={{ width: '100%', textAlign: 'center', py: 6 }}>
+                <Typography color="error">Error: {error}</Typography>
+              </Box>
+            )}
+            {!loading && !error && accommodations.length === 0 && (
+              <Box sx={{ width: '100%', textAlign: 'center', py: 6 }}>
+                <Typography>No popular accommodations yet.</Typography>
+              </Box>
+            )}
+            {!loading && !error && accommodations.map((accommodation, index) => (
               <Box
-                key={`${accommodation.name}-${index}`}
+                key={`${accommodation.hotel_id || accommodation.hotel_name || index}`}
                 sx={{
                   flex: {
                     xs: '0 0 100%',
@@ -249,29 +224,36 @@ function BookingMoreDestinationsSection() {
                 }}
               >
                 <Box 
+                  onClick={() => accommodation.hotel_id && navigate(`/hotels/${accommodation.hotel_id}`)}
                   sx={{ 
                     position: 'relative',
-                    height: { xs: 350, sm: 370, md: 400, lg: 450 }, // Maintained card heights
+                    height: { xs: 350, sm: 370, md: 400, lg: 450 },
                     borderRadius: '16px',
                     overflow: 'hidden',
-                    boxShadow: '0 4px 10px rgba(0,0,0,0.15)',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.07)',
                     cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
-                    '&:hover': {
-                      boxShadow: '0 10px 20px rgba(0,0,0,0.2)',
-                      transform: 'translateY(-5px)'
+                    transform: 'translateY(0)',
+                    transition: 'transform 0.55s ease, box-shadow 0.55s ease',
+                    willChange: 'transform',
+                    '&:hover': { 
+                      boxShadow: '0 10px 24px rgba(0,0,0,0.18)',
+                      transform: 'translateY(-4px)'
                     },
+                    '&:hover .zoom-img': { transform: 'scale(1.06)' },
                     mb: 2
                   }}
                 >
                   <Box
                     component="img"
-                    src={accommodation.image}
-                    alt={accommodation.name}
+                    className="zoom-img"
+                    src={accommodation.image || PLACEHOLDER_IMG}
+                    alt={accommodation.hotel_name}
                     sx={{
                       width: '100%',
                       height: '100%',
                       objectFit: 'cover',
+                      transition: 'transform 0.6s ease',
+                      willChange: 'transform'
                     }}
                   />
                   <Box
@@ -294,7 +276,7 @@ function BookingMoreDestinationsSection() {
                         fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' } // Maintained font size
                       }}
                     >
-                      {accommodation.name}
+                      {accommodation.hotel_name}
                     </Typography>
                   </Box>
                 </Box>

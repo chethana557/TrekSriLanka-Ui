@@ -1,59 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BASE_URL } from '../../api';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 
-// Mock images - replace with your actual images
-const sigiriyaImg = 'https://images.unsplash.com/photo-1566552881560-0be862a7c445?w=400&h=250&fit=crop';
-const ellaImg = 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=250&fit=crop';
-const mirissaImg = 'https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=400&h=250&fit=crop';
-const kandyImg = 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=250&fit=crop';
+// Fallback placeholder image when a destination has no photo
+const placeholderImg = 'https://via.placeholder.com/800x450?text=Destination';
 
-// Updated destinations with more detailed information matching the card style
-const destinations = [
-  {
-    name: 'Pidurangala Rock',
-    subtitle: 'A Scenic Hike',
-    image: sigiriyaImg,
-    description: 'Located near Sigiriya, Pidurangala Rock offers a stunning panoramic view of Sigiriya Rock and the surrounding forests. The hike is slightly challenging but rewarding, especially during sunrise or sunset. Along the way, visitors pass an ancient Buddhist temple and large reclining Buddha statue.'
-  },
-  {
-    name: 'Dambulla Cave Temple',
-    subtitle: 'A Sacred Marvel',
-    image: ellaImg,
-    description: 'A UNESCO World Heritage Site, Dambulla Cave Temple features five ancient caves filled with beautiful Buddha statues and intricate murals, making it one of Sri Lanka\'s most significant religious sites. The temple complex dates back over 2,000 years and is still an active place of worship.'
-  },
-  {
-    name: 'Minneriya National Park',
-    subtitle: 'A Wildlife Paradise',
-    image: mirissaImg,
-    description: 'Famous for its large elephant gatherings, Minneriya National Park offers exciting jeep safaris where visitors can witness elephants, deer, and diverse bird species in their natural habitat. The park\'s main attraction is "The Gathering," where hundreds of elephants congregate near the Minneriya reservoir during the dry season.'
-  },
-  {
-    name: 'Hiriwadunna Village Tour',
-    subtitle: 'A Taste of Rural Life',
-    image: kandyImg,
-    description: 'This immersive experience allows visitors to explore a traditional Sri Lankan village, enjoy bullock cart rides, take a scenic boat ride, and participate in authentic local cooking demonstrations. It provides a glimpse into the simple yet rich lifestyle of rural communities.'
-  },
-  {
-    name: 'Anuradhapura',
-    subtitle: 'Ancient Capital',
-    image: ellaImg,
-    description: 'One of the ancient capitals of Sri Lanka, Anuradhapura is home to well-preserved ruins of an ancient Sinhala civilization. The sacred city is renowned for its stupas, monasteries, and the sacred Bodhi tree, making it a significant pilgrimage site for Buddhists worldwide.'
-  },
-  {
-    name: 'Jaffna',
-    subtitle: 'Cultural Heritage',
-    image: mirissaImg,
-    description: 'The cultural capital of the Northern Province, Jaffna offers a unique blend of Tamil culture, colonial architecture, and pristine beaches. Visit ancient temples, taste authentic Jaffna cuisine, and explore the rich history of this resilient city.'
-  },
-  {
-    name: 'Yala National Park',
-    subtitle: 'Wildlife Adventure',
-    image: kandyImg,
-    description: 'Sri Lanka\'s most visited national park, Yala is famous for having the highest density of leopards in the world. The park also hosts elephants, sloth bears, crocodiles, and over 215 bird species across its diverse ecosystems of grasslands, forests, and lagoons.'
-  }
-];
-
-function DestinationsMoreSection() {
+function DestinationsMoreSection({ nearestTown }) {
   // Determine how many items to show based on screen size
   const getItemsToShow = () => {
     if (window.innerWidth < 640) return 1; // xs
@@ -64,7 +17,34 @@ function DestinationsMoreSection() {
   
   const [itemsPerView, setItemsPerView] = useState(getItemsToShow());
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [remoteDestinations, setRemoteDestinations] = useState([]);
   const sliderRef = useRef(null);
+  const navigate = useNavigate();
+
+  // Normalize remote destination objects to a unified shape used by the cards
+  const normalizedRemote = remoteDestinations.map((d) => ({
+    id: d.destination_id || d._id || d.id || d.title,
+    title: d.title || 'Unknown',
+    mini_caption: d.mini_caption || d.nearest_town || '',
+    image: (Array.isArray(d.photos) && d.photos[0]) || d.photo || d.image || placeholderImg,
+    long_description: d.long_description || d.description || d.summary || d.overview || '',
+    best_time_to_visit: d.best_time_to_visit || '',
+    how_to_get_there: d.how_to_get_there || '',
+    entrance_fees: d.entrance_fees || '',
+    opening_hours: d.opening_hours || '',
+    things_to_do: d.things_to_do || [],
+  }));
+
+  // The active source used for rendering and navigation (backend only)
+  const source = normalizedRemote;
+
+  // Helper: return first half of long_description with ellipsis
+  const truncateHalf = (text) => {
+    if (!text) return '';
+    const halfIndex = Math.ceil(text.length / 2);
+    const trimmed = text.slice(0, halfIndex).trim();
+    return trimmed + ' ......';
+  };
   
   // Handle resize
   useEffect(() => {
@@ -79,7 +59,7 @@ function DestinationsMoreSection() {
   // Auto-slide animation
   useEffect(() => {
     const autoSlideInterval = setInterval(() => {
-      if (currentIndex < destinations.length - itemsPerView) {
+      if (currentIndex < source.length - itemsPerView) {
         const newIndex = currentIndex + 1;
         setCurrentIndex(newIndex);
         scrollToIndex(newIndex);
@@ -91,16 +71,38 @@ function DestinationsMoreSection() {
     }, 5000); // Change slide every 5 seconds
     
     return () => clearInterval(autoSlideInterval);
-  }, [currentIndex, itemsPerView]);
+  }, [currentIndex, itemsPerView, remoteDestinations.length]);
+
+  // Fetch destinations from backend (nearest town if provided, otherwise all)
+  useEffect(() => {
+    const fetchDestinations = async () => {
+      try {
+        const endpoint = nearestTown && nearestTown.trim() !== ''
+          ? `${BASE_URL}/destinations/nearest/${encodeURIComponent(nearestTown)}`
+          : `${BASE_URL}/destinations`;
+        const res = await fetch(endpoint);
+        if (!res.ok) {
+          setRemoteDestinations([]);
+          return;
+        }
+        const data = await res.json();
+        setRemoteDestinations(Array.isArray(data) ? data : []);
+      } catch (e) {
+        setRemoteDestinations([]);
+      }
+    };
+    fetchDestinations();
+  }, [nearestTown]);
   
   const handleNext = () => {
-    const newIndex = Math.min(currentIndex + itemsPerView, destinations.length - itemsPerView);
+  const total = source.length;
+  const newIndex = Math.min(currentIndex + itemsPerView, Math.max(0, total - itemsPerView));
     setCurrentIndex(newIndex);
     scrollToIndex(newIndex);
   };
   
   const handlePrev = () => {
-    const newIndex = Math.max(currentIndex - itemsPerView, 0);
+  const newIndex = Math.max(currentIndex - itemsPerView, 0);
     setCurrentIndex(newIndex);
     scrollToIndex(newIndex);
   };
@@ -114,6 +116,21 @@ function DestinationsMoreSection() {
       });
     }
   };
+
+  // Reset carousel when remote results arrive or layout changes
+  useEffect(() => {
+    if (normalizedRemote.length > 0) {
+      setCurrentIndex(0);
+      if (sliderRef.current) {
+        try {
+          sliderRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } catch (e) {
+          // ignore scroll errors in some browsers during server-side rendering
+          sliderRef.current.scrollLeft = 0;
+        }
+      }
+    }
+  }, [remoteDestinations.length, itemsPerView]);
 
   const containerStyles = {
     width: '100%',
@@ -212,7 +229,7 @@ function DestinationsMoreSection() {
     height: '600px', // Fixed height for all cards
     borderRadius: '20px',
     overflow: 'hidden',
-    boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
+  boxShadow: 'none',
     cursor: 'pointer',
     transition: 'all 0.3s cubic-bezier(.25,.8,.25,1)',
     backgroundColor: 'white',
@@ -265,6 +282,14 @@ function DestinationsMoreSection() {
     flexDirection: 'column',
     justifyContent: 'space-between',
     minHeight: '280px' // Fixed content area height
+  };
+
+  // Very light ash background for the text/content area
+  const cardContentBgStyles = {
+    backgroundColor: '#f6f8f8', // very light ash
+    borderBottomLeftRadius: '20px',
+    borderBottomRightRadius: '20px',
+    padding: '0'
   };
 
   const descriptionTextStyles = {
@@ -329,7 +354,7 @@ function DestinationsMoreSection() {
             </button>
           )}
           
-          {currentIndex < destinations.length - itemsPerView && (
+          {currentIndex < (source.length - itemsPerView) && (
             <button
               onClick={handleNext}
               style={nextButtonStyles}
@@ -345,18 +370,19 @@ function DestinationsMoreSection() {
           )}
           
           <div ref={sliderRef} style={sliderStyles}>
-            {destinations.map((destination, index) => (
-              <div key={`${destination.name}-${index}`} style={getCardContainerStyles()}>
-                <div 
-                  style={cardStyles}
+            {source.map((destination, index) => (
+              <div key={`${destination.id || destination.title}-${index}`} style={getCardContainerStyles()}>
+          <div 
+            style={cardStyles}
+            onClick={() => navigate('/destination/details', { state: destination })}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = '0 15px 35px rgba(0,0,0,0.2)';
+                      e.currentTarget.style.boxShadow = 'none';
                     e.currentTarget.style.transform = 'translateY(-8px)';
                     const img = e.currentTarget.querySelector('img');
                     if (img) img.style.transform = 'scale(1.05)';
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.15)';
+                      e.currentTarget.style.boxShadow = 'none';
                     e.currentTarget.style.transform = 'translateY(0)';
                     const img = e.currentTarget.querySelector('img');
                     if (img) img.style.transform = 'scale(1)';
@@ -364,44 +390,47 @@ function DestinationsMoreSection() {
                 >
                   {/* Header with Title and Subtitle */}
                   <div style={cardHeaderStyles}>
-                    <h3 style={cardTitleStyles}>{destination.name}</h3>
-                    <p style={cardSubtitleStyles}>{destination.subtitle}</p>
+                    <h3 style={cardTitleStyles}>{destination.title}</h3>
+                    <p style={cardSubtitleStyles}>{destination.mini_caption}</p>
                   </div>
 
                   {/* Image Section */}
                   <div style={imageContainerStyles}>
                     <img
                       src={destination.image}
-                      alt={destination.name}
+                      alt={destination.title}
                       style={imageStyles}
                     />
                   </div>
 
-                  {/* Description Section */}
-                  <div style={contentStyles}>
-                    <p style={descriptionTextStyles}>
-                      {destination.description}
-                    </p>
+                  {/* Description Section with subtle ash background */}
+                  <div style={{ ...cardContentBgStyles }}>
+                    <div style={{ ...contentStyles, padding: '20px' }}>
+                      <p style={descriptionTextStyles}>
+                        {truncateHalf(destination.long_description)}
+                      </p>
 
-                    {/* Arrow Button */}
-                    <div style={buttonContainerStyles}>
-                      <button
-                        style={arrowButtonStyles}
-                        onMouseEnter={(e) => {
-                          e.target.style.backgroundColor = '#008B8B';
-                          e.target.style.borderColor = '#008B8B';
-                          e.target.style.color = 'white';
-                          e.target.style.transform = 'translateX(5px)';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.target.style.backgroundColor = '#f5f5f5';
-                          e.target.style.borderColor = '#e0e0e0';
-                          e.target.style.color = '#666';
-                          e.target.style.transform = 'translateX(0)';
-                        }}
-                      >
-                        <ArrowRight size={20} />
-                      </button>
+                      {/* Arrow Button */}
+                      <div style={buttonContainerStyles}>
+                        <button
+                          style={arrowButtonStyles}
+                          onClick={() => navigate('/destination/details', { state: destination })}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = '#008B8B';
+                            e.target.style.borderColor = '#008B8B';
+                            e.target.style.color = 'white';
+                            e.target.style.transform = 'translateX(5px)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = '#f5f5f5';
+                            e.target.style.borderColor = '#e0e0e0';
+                            e.target.style.color = '#666';
+                            e.target.style.transform = 'translateX(0)';
+                          }}
+                        >
+                          <ArrowRight size={20} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

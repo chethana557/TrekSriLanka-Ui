@@ -1,21 +1,22 @@
 import React from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Navbar from '../../components/navbars/Navbar.jsx';
+import Footer_Combination from '../../components/footerCombination/Footer_Combination.jsx';
 import { CheckCircle, Download, Home, Calendar, Users, Baby, Globe, User, Mail, Phone } from 'lucide-react';
 
 function Confirmation() {
-  // Sample booking data - in real app this would come from props or state
-  const bookingData = {
-    fullName: 'John Smith',
-    email: 'john.smith@email.com',
-    mobile: '+1 234 567 8900',
-    travelDate: '2025-07-15',
-    adults: '2',
-    children: '1',
-    language: 'English',
-    bookingReference: 'TRK241007',
-    totalAmount: '$450.00'
-  };
+  const location = useLocation();
+  const navigate = useNavigate();
+  const bookingData = location.state?.bookingData || {};
+  const payment = location.state?.payment || {};
+  const pkgId = location.state?.packageId;
+  // Generate a booking reference if none provided
+  const bookingReference = bookingData.bookingReference || `TRK${Date.now().toString().slice(-8)}`;
+  const totalAmount = bookingData.totalFormatted || bookingData.totalAmount || '';
 
   return (
+    <>
+    <Navbar />
     <div style={{
       minHeight: '100vh',
       padding: '3rem 1rem',
@@ -102,7 +103,7 @@ function Confirmation() {
             textAlign: 'center',
             fontFamily: 'system-ui, -apple-system, sans-serif'
           }}>
-            {bookingData.bookingReference}
+            {bookingReference}
           </div>
         </div>
 
@@ -260,7 +261,7 @@ function Confirmation() {
                   color: '#333',
                   fontFamily: 'system-ui, -apple-system, sans-serif'
                 }}>
-                  {new Date(bookingData.travelDate).toLocaleDateString('en-US', { 
+                  {bookingData.travelDate && new Date(bookingData.travelDate).toLocaleDateString('en-US', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
@@ -477,13 +478,19 @@ function Confirmation() {
               e.target.style.boxShadow = '0 4px 15px rgba(0, 167, 157, 0.3)';
               e.target.style.transform = 'translateY(0)';
             }}
-          >
+          onClick={()=> { 
+            try { sessionStorage.removeItem('bookingFormData'); } catch {}
+            try { sessionStorage.removeItem('bookingFlowExpiry'); } catch {}
+            navigate('/');
+          } }>
             <Home style={{ width: '18px', height: '18px' }} />
             Back to Home
           </button>
         </div>
       </div>
     </div>
+    <Footer_Combination />
+    </>
   );
 }
 

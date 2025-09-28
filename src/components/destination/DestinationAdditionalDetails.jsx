@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, MapPin, DollarSign, Clock, Camera, ChevronLeft, ChevronRight } from 'lucide-react';
 
 function DestinationAdditionalDetails({ 
-  destinationName = "Sigiriya",
-  titleColor = '#00A79D'
+  destinationName = "",
+  titleColor = '#00A79D',
+  best_time_to_visit,
+  how_to_get_there,
+  entrance_fees,
+  opening_hours,
+  things_to_do,
+  uiLabels = null
 }) {
   const [activeSection, setActiveSection] = useState(0);
 
@@ -11,42 +17,32 @@ function DestinationAdditionalDetails({
     {
       id: 'bestTime',
       icon: Calendar,
-      title: 'Best Time to Visit',
-      content: 'The ideal time to visit Sigiriya is during the dry season, from December to April, when the weather is pleasant for climbing. Early morning or late afternoon visits are recommended to avoid the heat and witness breathtaking sunrise or sunset views.'
+  title: uiLabels?.sectionTitles?.bestTime || 'Best Time to Visit',
+      content: best_time_to_visit || 'Not available'
     },
     {
       id: 'howToGetThere',
       icon: MapPin,
-      title: 'How to Get There',
-      content: 'Sigiriya is located about 175 km from Colombo and is accessible via road or train. The nearest town is Dambulla, which has regular bus services. Travelers can hire a private taxi, take a bus, or join guided tours from major cities like Colombo, Kandy, or Anuradhapura.'
+  title: uiLabels?.sectionTitles?.howToGetThere || 'How to Get There',
+      content: how_to_get_there || 'Not available'
     },
     {
       id: 'entranceFees',
       icon: DollarSign,
-      title: 'Entrance Fees',
-      content: [
-        'Foreign Visitors: Around $30 per person',
-        'SAARC Visitors: Approximately $15 per person',
-        'Sri Lankan Citizens: Lower, with discounts for students and children'
-      ]
+  title: uiLabels?.sectionTitles?.entranceFees || 'Entrance Fees',
+      content: entrance_fees || ['Not available']
     },
     {
       id: 'openingHours',
       icon: Clock,
-      title: 'Opening Hours',
-      content: 'Sigiriya is open daily from 6:30 AM to 5:30 PM. The last ticket is issued around 4:30 PM.'
+  title: uiLabels?.sectionTitles?.openingHours || 'Opening Hours',
+      content: opening_hours || 'Not available'
     },
     {
       id: 'thingsToDo',
       icon: Camera,
-      title: 'Things to Do',
-      content: [
-        'Explore the Sigiriya Frescoes – Stunning ancient paintings of celestial maidens.',
-        'Walk Along the Mirror Wall – Features centuries-old inscriptions and poetry.',
-        'Visit the Water Gardens and Fountains – Well-planned gardens and fountains still functioning today.',
-        'Climb to the Summit – Experience the royal palace ruins and breathtaking 360° views.',
-        'Photography & Sightseeing – Capture stunning landscapes, sunrise, and sunset views.'
-      ]
+  title: uiLabels?.sectionTitles?.thingsToDo || 'Things to Do',
+      content: things_to_do || ['Not available']
     }
   ];
 
@@ -306,31 +302,57 @@ function DestinationAdditionalDetails({
     };
   }, []);
 
-  const renderContent = (content) => {
+  const renderContent = (content, sectionId) => {
+    const renderListItems = (items) => (
+      <ul style={listStyle}>
+        {items.map((item, index) => (
+          <li key={index} style={{ ...listItemStyle, display: 'flex', alignItems: 'flex-start' }}>
+            <span style={{ marginRight: '12px', lineHeight: '1.6', fontSize: '18px' }}>•</span>
+            <div style={{ flex: 1 }}>{item}</div>
+          </li>
+        ))}
+      </ul>
+    );
+
     if (Array.isArray(content)) {
-      return (
-        <ul style={listStyle}>
-          {content.map((item, index) => (
-            <li key={index} style={listItemStyle}>
-              <div style={listItemBulletStyle}></div>
-              {item}
-            </li>
-          ))}
-        </ul>
-      );
+      return renderListItems(content);
     }
-    return <p style={sectionContentStyle}>{content}</p>;
+
+    if (typeof content === 'string') {
+      // For the 'thingsToDo' section only, split into list items.
+      if (sectionId === 'thingsToDo') {
+        // Prefer explicit bullet separators
+        const partsByBullet = content.split('•').map(p => p.trim()).filter(p => p.length);
+        if (partsByBullet.length > 1) return renderListItems(partsByBullet);
+
+        // Then try newlines
+        const partsByNewline = content.split(/\r?\n/).map(p => p.trim()).filter(p => p.length);
+        if (partsByNewline.length > 1) return renderListItems(partsByNewline);
+
+        // Finally split by sentences using periods for Things to Do
+        const sentences = content.split(/\s*\.(?:\s+|$)/).map(s => s.trim()).filter(s => s.length);
+        if (sentences.length > 1) return renderListItems(sentences);
+
+        // Single item
+        return <p style={sectionContentStyle}>{content}</p>;
+      }
+
+      // For all other sections, render the full string as a paragraph (don't split on periods)
+      return <p style={sectionContentStyle}>{content}</p>;
+    }
+
+    return <p style={sectionContentStyle}>{String(content)}</p>;
   };
+
+  const headerTitle = uiLabels?.headerTitle || 'Additional Important Details';
+  const exploreHeader = uiLabels?.exploreHeader || 'Explore Details';
+  const subheadingText = uiLabels?.subheadingText || `Everything you need to know to make the most of your visit to ${destinationName || 'this destination'}`;
 
   return (
     <div style={containerStyle}>
       <div style={innerContainerStyle}>
-        <h1 style={headingStyle}>
-          Additional Important Details
-        </h1>
-        <p style={subheadingStyle}>
-          Everything you need to know to make the most of your visit to {destinationName}
-        </p>
+        <h1 style={headingStyle}>{headerTitle}</h1>
+        <p style={subheadingStyle}>{subheadingText}</p>
 
         <div style={{ position: 'relative' }}>
           {/* Main content area */}
@@ -346,13 +368,13 @@ function DestinationAdditionalDetails({
                   </div>
                   <h2 style={sectionTitleStyle}>{sections[activeSection].title}</h2>
                 </div>
-                {renderContent(sections[activeSection].content)}
+                {renderContent(sections[activeSection].content, sections[activeSection].id)}
               </div>
             </div>
 
             {/* Right side - Options */}
             <div id="detailsOptionsContainer" style={optionsContainerStyle}>
-              <h3 style={optionsHeaderStyle}>Explore Details</h3>
+              <h3 style={optionsHeaderStyle}>{exploreHeader}</h3>
               <div style={optionsListStyle}>
                 {sections.map((section, idx) => (
                   <button

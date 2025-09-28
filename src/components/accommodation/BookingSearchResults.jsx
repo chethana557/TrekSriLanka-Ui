@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -27,12 +28,7 @@ import {
   Restaurant,
   LocalParking,
   FitnessCenter,
-  Spa,
-  Star,
-  FavoriteBorder,
-  Favorite,
-  Share,
-  FilterList
+  Spa
 } from '@mui/icons-material';
 
 const amenityIcons = {
@@ -46,18 +42,10 @@ const amenityIcons = {
 
 function BookingSearchResults({ searchResults = [], searchParams, loading = false, onNewSearch }) {
   const [sortBy, setSortBy] = useState('recommended');
-  const [favorites, setFavorites] = useState(new Set());
+  const navigate = useNavigate();
   const results = searchResults;
 
-  const toggleFavorite = (id) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(id)) {
-      newFavorites.delete(id);
-    } else {
-      newFavorites.add(id);
-    }
-    setFavorites(newFavorites);
-  };
+  // Removed favorite/share feature per request
 
   const sortedResults = [...results].sort((a, b) => {
     switch (sortBy) {
@@ -96,7 +84,7 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
   }
 
   return (
-    <Box sx={{ py: 4, px: 2, maxWidth: '1400px', mx: 'auto' }}>
+  <Box sx={{ py: 4, px: 2, maxWidth: '1400px', mx: 'auto' }}>
       {/* Results Header */}
       <Box sx={{ mb: 4 }}>
         <Typography 
@@ -108,7 +96,7 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
             fontFamily: `'Anek Latin', sans-serif`
           }}
         >
-          Search Results
+      Accommodation Results
         </Typography>
         
         {searchParams && (
@@ -182,26 +170,24 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
       {/* Results Grid */}
       {results.length > 0 && (
         <>
-          <Grid container spacing={3}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, justifyContent: 'flex-start' }}>
             {sortedResults.map((property) => (
-              <Grid item xs={12} sm={6} lg={4} key={property.id}>
-                <Card 
-                  sx={{ 
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    borderRadius: '16px',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.15)',
-                    },
-                    position: 'relative',
-                    overflow: 'hidden',
-                    maxWidth: '400px',
-                    mx: 'auto'
-                  }}
-                >
+              <Card
+                key={property.id}
+                sx={{
+                  width: 320,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: '16px',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    transform: 'translateY(-4px)',
+                    boxShadow: '0 8px 25px rgba(0,0,0,0.15)'
+                  },
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
                   {/* Featured Badge */}
                   {property.featured && (
                     <Chip
@@ -220,7 +206,7 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
                   )}
 
                   {/* Discount Badge */}
-                  {property.discount && (
+                  {property.discount > 0 && (
                     <Chip
                       label={`${property.discount}% OFF`}
                       size="small"
@@ -246,51 +232,19 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
                       sx={{ objectFit: 'cover' }}
                     />
                     
-                    {/* Action Buttons Overlay */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: 8,
-                        right: 8,
-                        display: 'flex',
-                        gap: 1
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={() => toggleFavorite(property.id)}
-                        sx={{
-                          bgcolor: 'rgba(255,255,255,0.9)',
-                          '&:hover': { bgcolor: 'white' }
-                        }}
-                      >
-                        {favorites.has(property.id) ? 
-                          <Favorite sx={{ color: '#FF4444' }} fontSize="small" /> : 
-                          <FavoriteBorder fontSize="small" />
-                        }
-                      </IconButton>
-                      <IconButton
-                        size="small"
-                        sx={{
-                          bgcolor: 'rgba(255,255,255,0.9)',
-                          '&:hover': { bgcolor: 'white' }
-                        }}
-                      >
-                        <Share fontSize="small" />
-                      </IconButton>
-                    </Box>
+                    {/* Removed favorite & share buttons */}
                   </Box>
 
                   {/* Property Details */}
-                  <CardContent sx={{ flexGrow: 1, p: 2 }}>
+      <CardContent sx={{ flexGrow: 1, p: 2, display: 'flex', flexDirection: 'column' }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
                       <Typography 
                         variant="h6" 
                         sx={{ 
                           fontWeight: 'bold',
                           fontSize: '1.1rem',
-                          fontFamily: `'Anek Latin', sans-serif`,
-                          lineHeight: 1.2
+        fontFamily: `'Anek Latin', sans-serif`,
+        lineHeight: 1.2
                         }}
                       >
                         {property.name}
@@ -314,14 +268,28 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
                     </Box>
 
                     <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      <Rating value={property.rating} precision={0.1} size="small" readOnly />
+                      <Rating value={property.rating || 0} precision={0.1} size="small" readOnly />
                       <Typography variant="body2" sx={{ ml: 1, color: '#666' }}>
-                        {property.rating} ({property.reviews} reviews)
+                        {property.reviews && property.reviews > 0
+                          ? `${property.rating} (${property.reviews} reviews)`
+                          : 'No reviews yet'}
                       </Typography>
                     </Box>
 
-                    <Typography variant="body2" sx={{ color: '#333', mb: 2, lineHeight: 1.4 }}>
-                      {property.description}
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: '#333',
+                        mb: 2,
+                        lineHeight: 1.4,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        minHeight: '64px'
+                      }}
+                    >
+                      {property.description || 'No description provided.'}
                     </Typography>
 
                     {/* Amenities */}
@@ -352,38 +320,23 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
                     </Box>
 
                     {/* Price */}
-                    <Box sx={{ mt: 'auto' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            color: '#00A79D', 
-                            fontWeight: 'bold',
-                            fontFamily: `'Anek Latin', sans-serif`
-                          }}
+                    <Box sx={{ mt: 'auto', pt: 1, borderTop: '1px solid #f2f4f5' }}>
+                      <Box sx={{ mb: 0.75 }}>
+                        <Typography
+                          variant="h6"
+                          sx={{ color: '#00A79D', fontWeight: 'bold', lineHeight: 1.15 }}
                         >
-                          LKR {property.price.toLocaleString()}
+                          {property.price ? `LKR ${property.price.toLocaleString()}` : 'Contact for price'}
                         </Typography>
-                        {property.originalPrice && (
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              textDecoration: 'line-through', 
-                              color: '#999' 
-                            }}
-                          >
-                            LKR {property.originalPrice.toLocaleString()}
-                          </Typography>
-                        )}
+                        <Typography variant="caption" sx={{ color: '#666' }}>
+                          per night
+                        </Typography>
                       </Box>
-                      <Typography variant="caption" sx={{ color: '#666' }}>
-                        per night
-                      </Typography>
                     </Box>
                   </CardContent>
 
                   {/* Action Buttons */}
-                  <CardActions sx={{ p: 2, pt: 0 }}>
+                  <CardActions sx={{ p: 2, pt: 0, mt: 'auto' }}>
                     <Button
                       variant="outlined"
                       size="small"
@@ -400,6 +353,7 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
                           color: '#008A82'
                         }
                       }}
+                      onClick={()=>navigate(`/hotels/${property.id}`)}
                     >
                       View Details
                     </Button>
@@ -416,14 +370,21 @@ function BookingSearchResults({ searchResults = [], searchParams, loading = fals
                           bgcolor: '#008A82'
                         }
                       }}
+                      onClick={()=>{
+                        const token = localStorage.getItem('access_token');
+                        if(!token){
+                          navigate('/login', { state:{ redirect: `/hotels/${property.id}` } });
+                          return;
+                        }
+                        navigate(`/hotels/${property.id}/booking`);
+                      }}
                     >
                       Book Now
                     </Button>
                   </CardActions>
-                </Card>
-              </Grid>
+              </Card>
             ))}
-          </Grid>
+          </Box>
 
           {/* Load More Button */}
           <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>

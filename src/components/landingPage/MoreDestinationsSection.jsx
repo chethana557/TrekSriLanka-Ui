@@ -1,110 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Box, Typography, IconButton, useMediaQuery, useTheme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import anuradhapura from '../../assets/common/anuradhapura.png';
-import arugamBay from '../../assets/common/arugamBay.png';
-import dambulla from '../../assets/common/dambulla.png';
-import haputale from '../../assets/common/haputale.png';
-import hortonPlains from '../../assets/common/hortonPlains.png';
-import kalpitiya from '../../assets/common/kalpitiya.png';
-import kitulgala from '../../assets/common/kitulgala.png';
-import knuckles from '../../assets/common/knuckles.png';
-import nuwaraEliya from '../../assets/common/nuwaraEliya.png';
-import pinnawala from '../../assets/common/pinnawala.png';
-import polonnaruwa from '../../assets/common/polonnaruwa.png';
-import ritigala from '../../assets/common/ritigala.png';
-import sinharaja from '../../assets/common/sinharaja.png';
-import tangalle from '../../assets/common/tangalle.png';
-import trincomalee from '../../assets/common/trincomalee.png';
-import udawalawe from '../../assets/common/udawalawe.png';
-import unawatuna from '../../assets/common/unawatuna.png';
-import wilpattu from '../../assets/common/wilpattu.png';
-import yala from '../../assets/common/yala.png';
 
 
-const destinations = [
-  {
-    name: 'Anuradhapura',
-    image: anuradhapura,
-  },
-  {
-    name: 'Arugam Bay',
-    image: arugamBay,
-  },
-  {
-    name: 'Dambulla',
-    image: dambulla,
-  },
-  {
-    name: 'Haputale',
-    image: haputale,
-  },
-  {
-    name: 'Horton Plains',
-    image: hortonPlains,
-  },
-  {
-    name: 'Kalpitiya',
-    image: kalpitiya,
-  },
-  {
-    name: 'Kitulgala',
-    image: kitulgala,
-  },
-  {
-    name: 'Knuckles Range',
-    image: knuckles,
-  },
-  {
-    name: 'Nuwara Eliya',
-    image: nuwaraEliya,
-  },
-  {
-    name: 'Pinnawala',
-    image: pinnawala,
-  },
-  {
-    name: 'Polonnaruwa',
-    image: polonnaruwa,
-  },
-  {
-    name: 'Ritigala',
-    image: ritigala,
-  },
-  {
-    name: 'Sinharaja Forest',
-    image: sinharaja,
-  },
-  {
-    name: 'Tangalle',
-    image: tangalle,
-  },
-  {
-    name: 'Trincomalee',
-    image: trincomalee,
-  },
-  {
-    name: 'Udawalawe',
-    image: udawalawe,
-  },
-  {
-    name: 'Unawatuna',
-    image: unawatuna,
-  },
-  {
-    name: 'Wilpattu',
-    image: wilpattu,
-  },
-  {
-    name: 'Yala',
-    image: yala,
-  },
-];
-
-
-function MoreDestinationsSection() {
+function MoreDestinationsSection({ cities = [] }) {
   const theme = useTheme();
+  const navigate = useNavigate();
   const isXs = useMediaQuery(theme.breakpoints.only('xs'));
   const isSm = useMediaQuery(theme.breakpoints.only('sm'));
   const isMd = useMediaQuery(theme.breakpoints.only('md'));
@@ -120,6 +23,7 @@ function MoreDestinationsSection() {
   const itemsPerView = getItemsToShow();
   const [currentIndex, setCurrentIndex] = useState(0);
   const sliderRef = useRef(null);
+  const destinations = Array.isArray(cities) && cities.length > 4 ? cities.slice(4) : [];
   
   // Auto-slide animation
   useEffect(() => {
@@ -136,7 +40,7 @@ function MoreDestinationsSection() {
     }, 5000); // Change slide every 5 seconds
     
     return () => clearInterval(autoSlideInterval);
-  }, [currentIndex, itemsPerView]);
+  }, [currentIndex, itemsPerView, destinations.length]);
   
   const handleNext = () => {
     const newIndex = Math.min(currentIndex + itemsPerView, destinations.length - itemsPerView);
@@ -267,9 +171,9 @@ function MoreDestinationsSection() {
               position: 'relative',
             }}
           >
-            {destinations.map((destination, index) => (
+            {destinations.map((c, index) => (
               <Box
-                key={`${destination.name}-${index}`}
+                key={`${c.main_city_id || c.id || c.title || 'city'}-${index}`}
                 sx={{
                   flex: {
                     xs: '0 0 100%',
@@ -296,11 +200,22 @@ function MoreDestinationsSection() {
                     },
                     mb: 2
                   }}
+                  onClick={() => {
+                    navigate('/destination/city-details', {
+                      state: {
+                        title: c.title,
+                        mini_caption: c.mini_caption,
+                        long_description: c.long_description,
+                        photos: Array.isArray(c.photos) ? c.photos : [],
+                        image: (Array.isArray(c.photos) && c.photos[0]) ? c.photos[0] : '/placeholder-destination.jpg'
+                      }
+                    });
+                  }}
                 >
                   <Box
                     component="img"
-                    src={destination.image}
-                    alt={destination.name}
+                    src={(Array.isArray(c.photos) && c.photos[0]) ? c.photos[0] : '/placeholder-destination.jpg'}
+                    alt={c.title || 'City'}
                     sx={{
                       width: '100%',
                       height: '100%',
@@ -327,7 +242,7 @@ function MoreDestinationsSection() {
                         fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' } // Maintained font size
                       }}
                     >
-                      {destination.name}
+                      {c.title}
                     </Typography>
                   </Box>
                 </Box>

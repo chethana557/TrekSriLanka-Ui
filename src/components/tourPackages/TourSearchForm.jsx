@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   TextField, 
@@ -12,42 +12,10 @@ import {
 } from '@mui/material';
 import { Search, Refresh } from '@mui/icons-material';
 
-function TourSearchForm({ onSearch, onReset, isLoading = false }) {
-  const [duration, setDuration] = useState('None');
-  const [budget, setBudget] = useState('None');
-  const [tourType, setTourType] = useState('None');
-
-  const durationOptions = [
-    'None',
-    '1-3 Days',
-    '4-7 Days', 
-    '1-2 Weeks',
-    '2-4 Weeks',
-    '1+ Month'
-  ];
-
-  const budgetOptions = [
-    'None',
-    'Under $500',
-    '$500-$1000',
-    '$1000-$2500',
-    '$2500-$5000',
-    '$5000+'
-  ];
-
-  const tourTypeOptions = [
-    'None',
-    'Adventure',
-    'Cultural',
-    'Beach & Relaxation',
-    'Wildlife Safari',
-    'City Tours',
-    'Mountain Trekking',
-    'Food & Wine',
-    'Photography',
-    'Historical',
-    'Eco Tours'
-  ];
+function TourSearchForm({ onSearch, onReset, isLoading = false, durationOptions = ['None'], budgetOptions = ['None'], tourTypeOptions = ['None'] }) {
+  const [duration, setDuration] = useState('None'); // numeric day_count as string
+  const [budget, setBudget] = useState('None'); // numeric package_price as string
+  const [tourType, setTourType] = useState('None'); // tour_type exact
 
   const handleSearch = () => {
     if (onSearch) {
@@ -89,10 +57,10 @@ function TourSearchForm({ onSearch, onReset, isLoading = false }) {
           Find Your Perfect Tour Package
         </h1>
       </Box>
-      <Grid container spacing={2} alignItems="center" justifyContent="center">
+  <Grid container spacing={2} alignItems="center" justifyContent="center">
         {/* Duration Field */}
-        <Grid item xs={12} sm={6} md={8}>
-          <FormControl fullWidth disabled={isLoading}>
+        <Grid item>
+          <FormControl disabled={isLoading} sx={{ width: 160 }}>
             <InputLabel 
               sx={{ 
                 color: '#666',
@@ -102,7 +70,7 @@ function TourSearchForm({ onSearch, onReset, isLoading = false }) {
                 },
               }}
             >
-              Duration
+              Duration 
             </InputLabel>
             <Select
               value={duration}
@@ -147,8 +115,8 @@ function TourSearchForm({ onSearch, onReset, isLoading = false }) {
         </Grid>
 
         {/* Budget Field */}
-        <Grid item xs={12} sm={6} md={8}>
-          <FormControl fullWidth disabled={isLoading}>
+        <Grid item>
+          <FormControl disabled={isLoading} sx={{ width: 160 }}>
             <InputLabel 
               sx={{ 
                 color: '#666',
@@ -203,8 +171,8 @@ function TourSearchForm({ onSearch, onReset, isLoading = false }) {
         </Grid>
 
         {/* Tour Type Field */}
-        <Grid item xs={12} sm={6} md={8}>
-          <FormControl fullWidth disabled={isLoading}>
+        <Grid item>
+          <FormControl disabled={isLoading} sx={{ width: 200 }}>
             <InputLabel 
               sx={{ 
                 color: '#666',
@@ -214,7 +182,7 @@ function TourSearchForm({ onSearch, onReset, isLoading = false }) {
                 },
               }}
             >
-              Tour type
+              Tour Type
             </InputLabel>
             <Select
               value={tourType}
@@ -259,8 +227,8 @@ function TourSearchForm({ onSearch, onReset, isLoading = false }) {
         </Grid>
 
         {/* Action Buttons */}
-        <Grid item xs={12} sm={12} md={8}>
-          <Box sx={{ display: 'flex', gap: 1.5, height: '56px', justifyContent: 'center' }}>
+        <Grid item xs={12}>
+          <Box sx={{ display: 'flex', gap: 1.5, height: '56px', justifyContent: 'center', mt: 1 }}>
             {/* Search Button */}
             <Button
               variant="contained"

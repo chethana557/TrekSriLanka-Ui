@@ -1,32 +1,11 @@
 import React from 'react';
-import { Box, Typography, Grid, Card, CardMedia, CardContent } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
-import Sigiriya from '../../assets/common/sigiriya.png';
-import Ella from '../../assets/common/ella.png';
-import Mirissa from '../../assets/common/mirissa.png';
-import Kandy from '../../assets/common/kandy.png';
+function DestinationsSection({ cities = [] }) {
+  const navigate = useNavigate();
+  const destinations = Array.isArray(cities) ? cities.slice(0, 4) : [];
 
-const destinations = [
-  {
-    name: 'Sigiriya',
-    image: Sigiriya,
-  },
-  {
-    name: 'Ella',
-    image: Ella,
-  },
-  {
-    name: 'Mirissa',
-    image: Mirissa,
-  },
-  {
-    name: 'Kandy',
-    image: Kandy,
-  },
-  
-];
-
-function DestinationsSection() {
   return (
     <Box sx={{ bgcolor: '#00A79D', py: 6, width: '100%' }}>
       <Box sx={{ maxWidth: '1200px', mx: 'auto', px: 3 }}>
@@ -67,13 +46,29 @@ function DestinationsSection() {
           </Typography>
         </Box>
         
-        <Grid container spacing={4} justifyContent="center">
-          {destinations.map((destination) => (
-            <Grid item xs={10} sm={6} md={3} key={destination.name}>
-              <Box 
-                sx={{ 
+        <Box
+          sx={{
+            display: 'flex',
+            gap: 0,
+            justifyContent: 'center',
+            flexWrap: 'nowrap',
+            overflowX: 'auto',
+            px: 1
+          }}
+        >
+          {destinations.map((c, idx) => (
+            <Box 
+              key={(c.main_city_id || c.id || c.title || 'city') + '-' + idx} 
+              sx={{ 
+                flex: '0 0 auto', 
+                width: { xs: '100%', sm: '50%', md: '33.333%', lg: '25%' },
+                px: 1.5
+              }}
+            >
+              <Box
+                sx={{
                   position: 'relative',
-                  height: 400,
+                  height: { xs: 350, sm: 370, md: 400, lg: 450 },
                   borderRadius: '16px',
                   overflow: 'hidden',
                   boxShadow: '0 10px 20px rgba(0,0,0,0.19), 0 6px 6px rgba(0,0,0,0.23)',
@@ -84,11 +79,22 @@ function DestinationsSection() {
                     transform: 'translateY(-5px)'
                   }
                 }}
+                onClick={() => {
+                  navigate('/destination/city-details', {
+                    state: {
+                      title: c.title,
+                      mini_caption: c.mini_caption,
+                      long_description: c.long_description,
+                      photos: Array.isArray(c.photos) ? c.photos : [],
+                      image: (Array.isArray(c.photos) && c.photos[0]) ? c.photos[0] : '/placeholder-destination.jpg'
+                    }
+                  });
+                }}
               >
                 <Box
                   component="img"
-                  src={destination.image}
-                  alt={destination.name}
+                  src={(Array.isArray(c.photos) && c.photos[0]) ? c.photos[0] : '/placeholder-destination.jpg'}
+                  alt={c.title || 'City'}
                   sx={{
                     width: '100%',
                     height: '100%',
@@ -114,13 +120,13 @@ function DestinationsSection() {
                       fontSize: '1.75rem'
                     }}
                   >
-                    {destination.name}
+                    {c.title}
                   </Typography>
                 </Box>
               </Box>
-            </Grid>
+            </Box>
           ))}
-        </Grid>
+        </Box>
       </Box>
     </Box>
   );

@@ -293,11 +293,12 @@ const featuredDestination = {
   activities: ['Photography', 'Train Spotting', 'Hiking', 'Sightseeing']
 };
 
-function SriLankaExplorer() {
+function SriLankaExplorer({ onSelect }) {
   const [selectedDestination, setSelectedDestination] = useState(destinations.find(dest => dest.name === 'Ella'));
   
   const handlePinClick = (destination) => {
     setSelectedDestination(destination);
+    if (typeof onSelect === 'function') onSelect(destination.name);
   };
 
   return (
@@ -443,26 +444,7 @@ function SriLankaExplorer() {
                 </Box>
               </Box>
               
-              <Button 
-                variant="contained" 
-                endIcon={<ArrowForwardIcon />}
-                sx={{ 
-                  alignSelf: 'flex-start',
-                  bgcolor: '#00A79D',
-                  color: 'white',
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: '25px',
-                  '&:hover': {
-                    bgcolor: '#00897B',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 20px rgba(0, 167, 157, 0.3)'
-                  },
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                Plan Your Visit
-              </Button>
+              {/* Plan Your Visit button removed per request */}
             </>
           ) : (
             // Enhanced featured destination content
@@ -541,26 +523,7 @@ function SriLankaExplorer() {
                 </Box>
               </Box>
               
-              <Button 
-                variant="contained" 
-                endIcon={<ArrowForwardIcon />}
-                sx={{ 
-                  alignSelf: 'flex-start',
-                  bgcolor: '#00A79D',
-                  color: 'white',
-                  px: 4,
-                  py: 1.5,
-                  borderRadius: '25px',
-                  '&:hover': {
-                    bgcolor: '#00897B',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 8px 20px rgba(0, 167, 157, 0.3)'
-                  },
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                Plan Your Visit
-              </Button>
+              {/* Plan Your Visit button removed per request */}
             </>
           )}
         </Box>
